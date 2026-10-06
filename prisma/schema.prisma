@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationRole { OWNER ADMIN MEMBER }
+enum ReviewSource { GOOGLE DEMO }
+enum ReplyStatus { NEEDS_REPLY REPLIED SKIPPED DRAFT }
+enum Sentiment { POSITIVE NEUTRAL NEGATIVE }
+enum DraftStatus { DRAFT APPROVED PUBLISHED SKIPPED }
+enum SyncStatus { IDLE RUNNING SUCCESS FAILED }
+enum ReportType { WEEKLY MONTHLY }
+
+model User {
+  id        String               @id
+  email     String               @unique
+  createdAt DateTime             @default(now())
+  members   OrganizationMember[]
+}
+
+model Organization {
+  id        String               @id @default(cuid())
+  name      String
+  plan      String               @default("free")
+  createdAt DateTime             @default(now())
+  members   OrganizationMember[]
+  locations BusinessLocation[]
+  campaigns QRCampaign[]
+  google    GoogleIntegration?
+  reports   Report[]
+}
+
+model OrganizationMember {
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(OWNER)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([organizationId, userId])
+  @@index([userId])
+}
+
+model BusinessLocation {
+  id               String       @id @default(cuid())
+  organizationId   String
+  googleLocationId String?      @unique
+  name             String
+  address          String?
+  category         String?
+  country          String?
+  timezone         String
+  averageRating    Float?
+  totalReviewCount Int?
+  createdAt        DateTime     @default(now())
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reviews          Review[]
+  campaigns        QRCampaign[]
+  syncLogs         SyncLog[]
+  @@index([organizationId])
+}
+
+model GoogleIntegration {
+  id                    String       @id @default(cuid())
+  organizationId        String       @unique
+  googleAccountId       String?
+  encryptedAccessToken  String
+  encryptedRefreshToken String
+  tokenExpiry           DateTime?
+  connectedAt           DateTime     @default(now())
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id                    String        @id @default(cuid())
+  locationId            String
+  externalReviewId      String
+  source                ReviewSource  @default(GOOGLE)
+  reviewerName          String
+  reviewerPhotoUrl      String?
+  rating                Int
+  comment               String?
+  reviewCreatedAt       DateTime
+  reviewUpdatedAt       DateTime?
+  ownerReply            String?
+  ownerReplyUpdatedAt   DateTime?
+  replyStatus           ReplyStatus   @default(NEEDS_REPLY)
+  syncedAt              DateTime      @default(now())
+  location              BusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  analysis              ReviewAnalysis?
+  topics                ReviewTopic[]
+  drafts                ReplyDraft[]
+  @@unique([locationId, externalReviewId])
+  @@index([locationId, reviewCreatedAt])
+  @@index([locationId, replyStatus])
+}
+
+model ReviewAnalysis {
+  id                String    @id @default(cuid())
+  reviewId          String    @unique
+  sentiment         Sentiment
+  sentimentScore    Float
+  summary           String
+  primaryComplaint  String?
+  primaryPraise     String?
+  actionableInsight String?
+  model             String
+  promptVersion     String
+  generatedAt       DateTime  @default(now())
+  review            Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+
+model ReviewTopic {
+  id         String    @id @default(cuid())
+  reviewId   String
+  topicName  String
+  sentiment  Sentiment
+  confidence Float
+  review     Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  @@index([reviewId])
+  @@index([topicName])
+}
+
+model ReplyDraft {
+  id                String      @id @default(cuid())
+  reviewId          String
+  content           String
+  style             String
+  customInstruction String?
+  status            DraftStatus @default(DRAFT)
+  model             String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  review            Review      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  @@index([reviewId, status])
+}
+
+model QRCampaign {
+  id             String           @id @default(cuid())
+  organizationId String
+  locationId     String?
+  name           String
+  slug           String           @unique
+  destinationUrl String
+  internalLabel  String?
+  scanCount      Int              @default(0)
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location       BusinessLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  scans          QRScan[]
+  @@index([organizationId])
+  @@index([locationId])
+}
+
+model QRScan {
+  id         String     @id @default(cuid())
+  campaignId String
+  timestamp  DateTime   @default(now())
+  userAgent  String?
+  country    String?
+  campaign   QRCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  @@index([campaignId, timestamp])
+}
+
+model SyncLog {
+  id             String          @id @default(cuid())
+  locationId     String
+  status         SyncStatus
+  startedAt      DateTime        @default(now())
+  completedAt    DateTime?
+  reviewsFetched Int             @default(0)
+  errorMessage   String?
+  location       BusinessLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  @@index([locationId, startedAt])
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  organizationId String
+  locationId     String?
+  type           ReportType
+  dateFrom       DateTime
+  dateTo         DateTime
+  content        String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@index([organizationId, type, createdAt])
+}

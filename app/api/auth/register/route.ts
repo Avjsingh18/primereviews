@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       // Keep client errors safe, while retaining Supabase's diagnostic details in Vercel logs.
       console.error("Supabase signup failed", { code: signUpError.code, message: signUpError.message, status: signUpError.status });
       if (signUpError.code === "over_email_send_rate_limit") {
-        return error("We already sent a confirmation email. Please wait a minute, then check your inbox and spam folder.", 429);
+        return NextResponse.json({ emailConfirmationRequired: true, email });
       }
       if (signUpError.code === "email_address_invalid") {
         return error("Please use a valid email address that you can access.");

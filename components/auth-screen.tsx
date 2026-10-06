@@ -1,3 +1,71 @@
 "use client";
-import Link from "next/link";import {useRouter} from "next/navigation";import {useState} from "react";import {ArrowRight,Eye,Mail,Lock,User} from "lucide-react";
-export default function AuthScreen({mode}:{mode:"login"|"signup"}){const [loading,setLoading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");const router=useRouter();const signup=mode==="signup";async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setLoading(true);setError("");setNotice("");const f=new FormData(e.currentTarget);const body=signup?{ownerName:f.get("name"),businessName:f.get("business"),email:f.get("email"),password:f.get("password")}:{email:f.get("email"),password:f.get("password")};try{const r=await fetch(`/api/auth/${signup?"register":"login"}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){setError(d.error||"We couldn’t complete that request. Please try again.");return}if(d.emailConfirmationRequired){setNotice("Account created. Check your inbox and spam folder to confirm your email, then sign in.");return}localStorage.setItem("reviewflow_token",d.token);localStorage.setItem("reviewflow_business",d.businessName||"");router.push(signup||d.onboardingRequired?"/onboarding":"/dashboard")}catch{setError("We couldn’t reach the secure service. Please refresh and try again.")}finally{setLoading(false)}}return <main className="auth"><Link className="brand" href="/"><span>✦</span> reviewflow</Link><section><p className="eyebrow">{signup?"START FOR FREE":"WELCOME BACK"}</p><h1>{signup?"Start growing your Google reviews.":"Good to see you again."}</h1><p className="muted">{signup?"Create your account in less than a minute.":"Sign in to see how your reviews are growing."}</p><form onSubmit={submit}>{signup&&<><label>Your name<div><User/><input name="name" required placeholder="Alex Morgan"/></div></label><label>Business name<div><User/><input name="business" required placeholder="Melbourne Coffee House"/></div></label></>}<label>Email address<div><Mail/><input name="email" required type="email" placeholder="you@business.com"/></div></label><label>Password<div><Lock/><input name="password" required minLength={8} type="password" placeholder="At least 8 characters"/><Eye/></div></label>{!signup&&<Link className="forgot" href="#">Forgot password?</Link>}{error&&<p className="form-error">{error}</p>}{notice&&<p className="form-success">{notice}</p>}<button className="button auth-button" disabled={loading}>{loading?"Please wait…":signup?"Create account":"Sign in"}<ArrowRight/></button></form><p className="switch">{signup?"Already have an account?":"New to ReviewFlow?"} <Link href={signup?"/login":"/signup"}>{signup?"Sign in":"Create an account"}</Link></p></section><aside className="auth-aside"><div><b>“</b><p>ReviewFlow makes it easy for every happy customer to find our Google page.</p><span>— Kate R., local business owner</span></div></aside></main>}
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ArrowRight, CheckCircle2, Eye, Mail, Lock, Sparkles, User } from "lucide-react";
+
+export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const router = useRouter();
+  const signup = mode === "signup";
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setNotice("");
+    const form = new FormData(event.currentTarget);
+    const body = signup
+      ? { ownerName: form.get("name"), businessName: form.get("business"), email: form.get("email"), password: form.get("password") }
+      : { email: form.get("email"), password: form.get("password") };
+
+    try {
+      const response = await fetch(`/api/auth/${signup ? "register" : "login"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "We couldn’t complete that request. Please try again.");
+        return;
+      }
+      if (data.emailConfirmationRequired) {
+        const email = typeof data.email === "string" ? data.email : String(body.email || "");
+        setNotice(`Confirmation email sent to ${email}. Confirm your email to sign in.`);
+        return;
+      }
+      localStorage.setItem("reviewflow_token", data.token);
+      localStorage.setItem("reviewflow_business", data.businessName || "");
+      router.push(signup || data.onboardingRequired ? "/onboarding" : "/dashboard");
+    } catch {
+      setError("We couldn’t reach the secure service. Please refresh and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return <main className="auth">
+    <Link className="brand" href="/"><span>✦</span> reviewflow</Link>
+    <section className="auth-panel">
+      <div className="auth-kicker"><Sparkles aria-hidden="true" />{signup ? "START FOR FREE" : "WELCOME BACK"}</div>
+      <h1>{signup ? "Reviews, made remarkably easy." : "Welcome back."}</h1>
+      <p className="muted">{signup ? "Create a share-ready review experience for every customer." : "Sign in to see what customers are saying."}</p>
+      <form onSubmit={submit}>
+        {signup && <><label>Your name<div><User /><input name="name" required placeholder="Alex Morgan" /></div></label><label>Business name<div><User /><input name="business" required placeholder="Melbourne Coffee House" /></div></label></>}
+        <label>Email address<div><Mail /><input name="email" required type="email" placeholder="you@business.com" /></div></label>
+        <label>Password<div><Lock /><input name="password" required minLength={8} type="password" placeholder="At least 8 characters" /><Eye /></div></label>
+        {!signup && <Link className="forgot" href="#">Forgot password?</Link>}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        {notice && <p className="form-success" role="status"><CheckCircle2 aria-hidden="true" />{notice}</p>}
+        <button className="button auth-button" disabled={loading}>{loading ? "Please wait…" : signup ? "Create account" : "Sign in"}<ArrowRight /></button>
+      </form>
+      <p className="switch">{signup ? "Already have an account?" : "New to ReviewFlow?"} <Link href={signup ? "/login" : "/signup"}>{signup ? "Sign in" : "Create an account"}</Link></p>
+    </section>
+    <aside className="auth-aside" aria-label="ReviewFlow benefits">
+      <div className="orb orb-one" /><div className="orb orb-two" />
+      <div className="auth-proof"><span className="proof-star">★</span><span>Built for neighbourhood businesses</span></div>
+      <div className="auth-aside-copy"><p>Turn every happy visit into a review worth sharing.</p><span>One beautiful QR code. Clear momentum. No busywork.</span></div>
+      <div className="auth-stat"><strong>One scan</strong><span>opens your Google review page instantly</span></div>
+    </aside>
+  </main>;
+}

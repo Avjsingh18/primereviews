@@ -24,11 +24,15 @@ function distanceMeters(latitude: number, longitude: number, placeLatitude?: num
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser(request); if ("response" in auth) return auth.response;
   const category = request.nextUrl.searchParams.get("category") || "cafe";
   const radiusKm = Number(request.nextUrl.searchParams.get("radiusKm") || 3);
   if (!categoryTypes[category]) return error("Choose a valid business category.");
   if (![1, 3, 5].includes(radiusKm)) return error("Choose a 1 km, 3 km, or 5 km radius.");
+  if (process.env.REVIEWFLOW_LOCAL_BACKEND === "true") {
+    return NextResponse.json({ source:"demo", places:demoPlaces[category] || [], radiusKm });
+  }
+
+  const auth = await requireUser(request); if ("response" in auth) return auth.response;
 
   const { data: business, error: businessError } = await auth.supabase.from("businesses").select("latitude,longitude").eq("user_id", auth.user.id).maybeSingle();
   if (businessError) return error("The local-location database migration has not been applied yet.", 409);

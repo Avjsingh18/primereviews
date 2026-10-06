@@ -39,6 +39,20 @@ The QR payload is a public ReviewFlow tracking URL, for example `https://app.exa
 
 ## Local development
 
+### Fast, isolated local stack
+
+For local testing without touching Supabase or production data, run:
+
+```bash
+npm run dev:local
+```
+
+This starts an isolated PostgreSQL database at `127.0.0.1:5433`, applies the Spring/Flyway migrations, starts the local API at `127.0.0.1:8081`, and serves Next.js at `http://localhost:3000`. Next.js proxies local auth, business, QR, and analytics traffic to that API. Local data lives only in `.local/`, which Git ignores. Check the services with `npm run local:status`.
+
+The local stack creates accounts immediately. Email confirmation belongs to hosted Supabase Auth and is not sent by the local-only development server.
+
+### Supabase-backed mode
+
 ```bash
 npm install
 cp .env.example .env.local
