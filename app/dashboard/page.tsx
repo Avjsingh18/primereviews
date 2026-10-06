@@ -1,2 +1,2 @@
-import Dashboard from "../../components/dashboard";
-export default function DashboardPage() { return <Dashboard />; }
+import ReputationDashboard from "../../components/reputation-dashboard";
+export default function DashboardPage() { return <ReputationDashboard />; }
