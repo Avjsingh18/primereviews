@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { categories, Category, haversineDistanceKm, NearbySearchResponse, OpenAIWebSearchProvider } from "@/lib/competitor-discovery";
 import { error, requireUser } from "@/lib/api";
+import { getCachedJson, redis, setCachedJson } from "@/lib/redis-cache";
 
 export const runtime = "nodejs";
 
 type CurrentBusiness = { id: string; identity: string; latitude: number; longitude: number; rating: number | null; reviewCount: number | null };
-type SearchInput = { category?: unknown; radiusKm?: unknown; limit?: unknown; refresh?: unknown };
+type SearchInput = { category?: unknown; radiusKm?: unknown; limit?: unknown };
 type CachedResult = NearbySearchResponse & { cached: boolean };
 
-const resultCache = new Map<string, { expiresAt: number; value: CachedResult }>();
 const inFlight = new Map<string, Promise<CachedResult>>();
 const lastRequestByBusiness = new Map<string, number>();
 const cacheTtlMs = Math.max(60, Number(process.env.COMPETITOR_SEARCH_CACHE_TTL_SECONDS || 86400)) * 1000;
@@ -20,7 +20,7 @@ function validSearch(input: SearchInput) {
   if (!category) return { problem: "Choose a valid business category." };
   if (![1, 3, 5].includes(radiusKm)) return { problem: "Choose a 1 km, 3 km, or 5 km radius." };
   if (!Number.isInteger(limit) || limit < 1 || limit > 25) return { problem: "Choose between 1 and 25 businesses." };
-  return { category, radiusKm: radiusKm as 1 | 3 | 5, limit, refresh: input.refresh === true };
+  return { category, radiusKm: radiusKm as 1 | 3 | 5, limit };
 }
 
 function hasCoordinates(latitude: unknown, longitude: unknown): latitude is number {
@@ -57,21 +57,23 @@ export async function POST(request: NextRequest) {
   if (business instanceof NextResponse) return business;
   if ((process.env.COMPETITOR_SEARCH_PROVIDER || "openai") !== "openai") return error("Nearby competitor search is not configured.", 503);
   if (!process.env.OPENAI_API_KEY) return error("Nearby competitor search is not configured. Add OPENAI_API_KEY on the server to enable it.", 503);
+  try { await redis(); } catch { return error("Nearby search cache is unavailable. Start Redis locally or configure REDIS_URL.", 503); }
 
-  const key = cacheKey(business, input.category, input.radiusKm, input.limit); const now = Date.now();
-  const cached = resultCache.get(key);
-  if (cached && cached.expiresAt > now && !input.refresh) return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: cached.value.businesses.length, searchedAt: cached.value.searchedAt, provider: cached.value.provider, sourceStatus: cached.value.sourceStatus, isComplete: cached.value.isComplete, cached: true }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: cached.value.businesses });
+  const key = cacheKey(business, input.category, input.radiusKm, input.limit);
+  const cached = await getCachedJson<CachedResult>(`reviewflow:benchmark:${key}`);
+  if (cached) return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: cached.businesses.length, searchedAt: cached.searchedAt, provider: cached.provider, sourceStatus: cached.sourceStatus, isComplete: cached.isComplete, cached: true }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: cached.businesses });
   if (inFlight.has(key)) {
     const value = await inFlight.get(key)!;
     return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: value.businesses.length, searchedAt: value.searchedAt, provider: value.provider, sourceStatus: value.sourceStatus, isComplete: value.isComplete, cached: value.cached }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: value.businesses });
   }
+  const now = Date.now();
   if (now - (lastRequestByBusiness.get(business.identity) || 0) < requestCooldownMs) return error("Please wait a few seconds before starting another nearby-business search.", 429);
   lastRequestByBusiness.set(business.identity, now);
 
   const search = (async () => {
     const provider = new OpenAIWebSearchProvider(process.env.OPENAI_API_KEY!, Math.max(5_000, Number(process.env.COMPETITOR_SEARCH_TIMEOUT_MS || 30000)), process.env.COMPETITOR_SEARCH_MODEL || "gpt-5.5");
     const result = normalize(await provider.searchNearbyBusinesses({ latitude: business.latitude, longitude: business.longitude, category: input.category, radiusKm: input.radiusKm, limit: input.limit }), business);
-    resultCache.set(key, { value: result, expiresAt: Date.now() + cacheTtlMs });
+    await setCachedJson(`reviewflow:benchmark:${key}`, result, Math.floor(cacheTtlMs / 1000));
     return result;
   })();
   inFlight.set(key, search);

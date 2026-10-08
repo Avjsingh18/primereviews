@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, requireUser, trackingUrl } from "@/lib/api";
 import { generateQrDesign, normalizeQrTheme, QrDesign } from "@/lib/qr-design";
+import { getCachedJson, redis, setCachedJson } from "@/lib/redis-cache";
 
 export const runtime = "nodejs";
 
-type CachedDesign = { value: QrDesign; expiresAt: number };
-const cache = new Map<string, CachedDesign>();
 const pending = new Map<string, Promise<QrDesign>>();
 const cacheTtlMs = Math.max(60, Number(process.env.QR_DESIGN_CACHE_TTL_SECONDS || 86400)) * 1000;
 
@@ -27,12 +26,13 @@ export async function POST(request: NextRequest) {
   const theme = normalizeQrTheme(body?.theme);
   if (!theme) return error("Describe your restaurant theme in 8 to 600 characters.");
   if (!process.env.OPENAI_API_KEY) return error("AI QR design is not configured yet. Add OPENAI_API_KEY on the server to enable it.", 503);
+  try { await redis(); } catch { return error("AI QR cache is unavailable. Start Redis locally or configure REDIS_URL.", 503); }
 
   const target = await productionTrackingUrl(request);
   if ("response" in target) return target.response;
-  const key = `${target.identity}:${theme.toLowerCase()}:${target.trackingUrl}`;
-  const cached = cache.get(key);
-  if (cached && cached.expiresAt > Date.now()) return NextResponse.json({ design: cached.value, cached: true });
+  const key = `${theme.toLowerCase()}:${target.trackingUrl}`;
+  const cached = await getCachedJson<QrDesign>(`reviewflow:qr-design:${key}`);
+  if (cached) return NextResponse.json({ design: cached, cached: true });
   const existing = pending.get(key);
   if (existing) return NextResponse.json({ design: await existing, cached: false });
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   pending.set(key, work);
   try {
     const design = await work;
-    cache.set(key, { value: design, expiresAt: Date.now() + cacheTtlMs });
+    await setCachedJson(`reviewflow:qr-design:${key}`, design, Math.floor(cacheTtlMs / 1000));
     return NextResponse.json({ design, cached: false });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "The artwork service is unavailable.";
