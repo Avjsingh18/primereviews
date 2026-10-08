@@ -1,57 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
+import { categories, Category, haversineDistanceKm, NearbySearchResponse, OpenAIWebSearchProvider } from "@/lib/competitor-discovery";
 import { error, requireUser } from "@/lib/api";
 
-type Place = { id: string; name: string; address: string; rating: number | null; reviewCount: number | null; mapsUrl: string | null; distanceMeters: number | null };
+export const runtime = "nodejs";
 
-const categoryTypes: Record<string, string[]> = {
-  cafe: ["cafe"], restaurant: ["restaurant"], hotel: ["hotel"], salon: ["beauty_salon", "hair_salon"],
-  clinic: ["doctor"], "coaching centre": ["school"], "plant nursery": ["garden_center"], gym: ["gym"],
-};
+type CurrentBusiness = { id: string; identity: string; latitude: number; longitude: number; rating: number | null; reviewCount: number | null };
+type SearchInput = { category?: unknown; radiusKm?: unknown; limit?: unknown; refresh?: unknown };
+type CachedResult = NearbySearchResponse & { cached: boolean };
 
-const demoPlaces: Record<string, Place[]> = {
-  cafe: [{ id:"demo-cafe-1", name:"The Daily Grind", address:"Nearby", rating:4.7, reviewCount:182, mapsUrl:null, distanceMeters:420 }, { id:"demo-cafe-2", name:"Bean Street Café", address:"Nearby", rating:4.6, reviewCount:96, mapsUrl:null, distanceMeters:780 }],
-  restaurant: [{ id:"demo-restaurant-1", name:"Spice Garden", address:"Nearby", rating:4.6, reviewCount:438, mapsUrl:null, distanceMeters:610 }, { id:"demo-restaurant-2", name:"The Terrace Kitchen", address:"Nearby", rating:4.5, reviewCount:271, mapsUrl:null, distanceMeters:1200 }],
-  hotel: [{ id:"demo-hotel-1", name:"Hotel Grand Stay", address:"Nearby", rating:4.4, reviewCount:687, mapsUrl:null, distanceMeters:1100 }, { id:"demo-hotel-2", name:"City View Residency", address:"Nearby", rating:4.3, reviewCount:402, mapsUrl:null, distanceMeters:1900 }],
-  salon: [{ id:"demo-salon-1", name:"Glow Studio", address:"Nearby", rating:4.8, reviewCount:211, mapsUrl:null, distanceMeters:340 }, { id:"demo-salon-2", name:"Style Lounge", address:"Nearby", rating:4.7, reviewCount:148, mapsUrl:null, distanceMeters:940 }],
-};
+const resultCache = new Map<string, { expiresAt: number; value: CachedResult }>();
+const inFlight = new Map<string, Promise<CachedResult>>();
+const lastRequestByBusiness = new Map<string, number>();
+const cacheTtlMs = Math.max(60, Number(process.env.COMPETITOR_SEARCH_CACHE_TTL_SECONDS || 86400)) * 1000;
+const requestCooldownMs = 5_000;
 
-function distanceMeters(latitude: number, longitude: number, placeLatitude?: number, placeLongitude?: number) {
-  if (placeLatitude == null || placeLongitude == null) return null;
-  const radians = (value: number) => value * Math.PI / 180;
-  const deltaLatitude = radians(placeLatitude - latitude); const deltaLongitude = radians(placeLongitude - longitude);
-  const a = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(radians(latitude)) * Math.cos(radians(placeLatitude)) * Math.sin(deltaLongitude / 2) ** 2;
-  return Math.round(6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+function validSearch(input: SearchInput) {
+  const category = typeof input.category === "string" && input.category in categories ? input.category as Category : null;
+  const radiusKm = Number(input.radiusKm); const limit = input.limit == null ? 25 : Number(input.limit);
+  if (!category) return { problem: "Choose a valid business category." };
+  if (![1, 3, 5].includes(radiusKm)) return { problem: "Choose a 1 km, 3 km, or 5 km radius." };
+  if (!Number.isInteger(limit) || limit < 1 || limit > 25) return { problem: "Choose between 1 and 25 businesses." };
+  return { category, radiusKm: radiusKm as 1 | 3 | 5, limit, refresh: input.refresh === true };
 }
 
-export async function GET(request: NextRequest) {
-  const auth = await requireUser(request); if ("response" in auth) return auth.response;
-  const category = request.nextUrl.searchParams.get("category") || "cafe";
-  const radiusKm = Number(request.nextUrl.searchParams.get("radiusKm") || 3);
-  if (!categoryTypes[category]) return error("Choose a valid business category.");
-  if (![1, 3, 5].includes(radiusKm)) return error("Choose a 1 km, 3 km, or 5 km radius.");
+function hasCoordinates(latitude: unknown, longitude: unknown): latitude is number {
+  return typeof latitude === "number" && typeof longitude === "number" && Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+}
 
-  const { data: business, error: businessError } = await auth.supabase.from("businesses").select("latitude,longitude").eq("user_id", auth.user.id).maybeSingle();
-  if (businessError) return error("The local-location database migration has not been applied yet.", 409);
+async function productionBusiness(request: NextRequest): Promise<CurrentBusiness | NextResponse> {
+  const auth = await requireUser(request); if ("response" in auth && auth.response) return auth.response;
+  const { data: business, error: businessError } = await auth.supabase.from("businesses").select("id,latitude,longitude").eq("user_id", auth.user.id).maybeSingle();
+  if (businessError) return error("The business location migration has not been applied yet.", 409);
   if (!business) return error("Complete onboarding to create your business.", 404);
-  if (business.latitude == null || business.longitude == null) return error("Add your business location in Settings before searching local competitors.", 409);
+  if (!hasCoordinates(business.latitude, business.longitude)) return error("Add your business location to find nearby competitors.", 409);
+  const { data: snapshots } = await auth.supabase.from("review_snapshots").select("rating,total_reviews").eq("business_id", business.id).order("snapshot_date", { ascending: false }).limit(1);
+  const latest = snapshots?.[0];
+  return { id: business.id, identity: auth.user.id, latitude: business.latitude!, longitude: business.longitude!, rating: latest?.rating ?? null, reviewCount: latest?.total_reviews ?? null };
+}
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey) return NextResponse.json({ source:"demo", places:demoPlaces[category] || [{ id:"demo-1", name:`Example ${category}`, address:"Nearby", rating:4.6, reviewCount:100, mapsUrl:null, distanceMeters:550 }], radiusKm });
+function cacheKey(business: CurrentBusiness, category: Category, radiusKm: number, limit: number) {
+  return [business.id, business.latitude.toFixed(5), business.longitude.toFixed(5), category, radiusKm, limit, process.env.COMPETITOR_SEARCH_PROVIDER || "openai"].join(":");
+}
 
+function normalize(response: NearbySearchResponse, business: CurrentBusiness): CachedResult {
+  const businesses = response.businesses.map((competitor) => {
+    const distanceKm = competitor.latitude != null && competitor.longitude != null ? Number(haversineDistanceKm(business.latitude, business.longitude, competitor.latitude, competitor.longitude).toFixed(2)) : null;
+    return { ...competitor, distanceKm, distanceVerified: distanceKm != null };
+  });
+  return { ...response, businesses, cached: false };
+}
+
+export async function POST(request: NextRequest) {
+  const input = validSearch(await request.json().catch(() => ({})));
+  if ("problem" in input) return error(input.problem ?? "Choose valid nearby-business search options.");
+  const business = await productionBusiness(request);
+  if (business instanceof NextResponse) return business;
+  if ((process.env.COMPETITOR_SEARCH_PROVIDER || "openai") !== "openai") return error("Nearby competitor search is not configured.", 503);
+  if (!process.env.OPENAI_API_KEY) return error("Nearby competitor search is not configured. Add OPENAI_API_KEY on the server to enable it.", 503);
+
+  const key = cacheKey(business, input.category, input.radiusKm, input.limit); const now = Date.now();
+  const cached = resultCache.get(key);
+  if (cached && cached.expiresAt > now && !input.refresh) return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: cached.value.businesses.length, searchedAt: cached.value.searchedAt, provider: cached.value.provider, sourceStatus: cached.value.sourceStatus, isComplete: cached.value.isComplete, cached: true }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: cached.value.businesses });
+  if (inFlight.has(key)) {
+    const value = await inFlight.get(key)!;
+    return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: value.businesses.length, searchedAt: value.searchedAt, provider: value.provider, sourceStatus: value.sourceStatus, isComplete: value.isComplete, cached: value.cached }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: value.businesses });
+  }
+  if (now - (lastRequestByBusiness.get(business.identity) || 0) < requestCooldownMs) return error("Please wait a few seconds before starting another nearby-business search.", 429);
+  lastRequestByBusiness.set(business.identity, now);
+
+  const search = (async () => {
+    const provider = new OpenAIWebSearchProvider(process.env.OPENAI_API_KEY!, Math.max(5_000, Number(process.env.COMPETITOR_SEARCH_TIMEOUT_MS || 30000)), process.env.COMPETITOR_SEARCH_MODEL || "gpt-5.5");
+    const result = normalize(await provider.searchNearbyBusinesses({ latitude: business.latitude, longitude: business.longitude, category: input.category, radiusKm: input.radiusKm, limit: input.limit }), business);
+    resultCache.set(key, { value: result, expiresAt: Date.now() + cacheTtlMs });
+    return result;
+  })();
+  inFlight.set(key, search);
   try {
-    const response = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "X-Goog-Api-Key":apiKey, "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri,places.location" },
-      body:JSON.stringify({ includedTypes:categoryTypes[category], maxResultCount:20, rankPreference:"DISTANCE", locationRestriction:{ circle:{ center:{ latitude:business.latitude, longitude:business.longitude }, radius:radiusKm * 1000 } } }),
-      cache:"no-store",
-    });
-    if (!response.ok) throw new Error(`Places search returned ${response.status}`);
-    const payload = await response.json() as { places?: Array<{ id?: string; displayName?: { text?: string }; formattedAddress?: string; rating?: number; userRatingCount?: number; googleMapsUri?: string; location?: { latitude?: number; longitude?: number } }> };
-    const places: Place[] = (payload.places || []).map((place) => ({
-      id:place.id || crypto.randomUUID(), name:place.displayName?.text || "Unnamed business", address:place.formattedAddress || "Nearby",
-      rating:place.rating ?? null, reviewCount:place.userRatingCount ?? null, mapsUrl:place.googleMapsUri || null,
-      distanceMeters:distanceMeters(business.latitude, business.longitude, place.location?.latitude, place.location?.longitude),
-    }));
-    return NextResponse.json({ source:"google_places", places, radiusKm });
-  } catch { return error("We couldn’t load local benchmark data. Check the Google Places API key and try again.", 502); }
+    const value = await search;
+    return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: value.businesses.length, searchedAt: value.searchedAt, provider: value.provider, sourceStatus: value.sourceStatus, isComplete: value.isComplete, cached: false }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: value.businesses });
+  } catch (cause) {
+    console.error("Competitor discovery failed", { message: cause instanceof Error ? cause.message : "unknown" });
+    return error("We couldn’t retrieve nearby businesses right now. Please try again.", 502);
+  } finally { inFlight.delete(key); }
 }
