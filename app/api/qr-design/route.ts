@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
   const theme = normalizeQrTheme(body?.theme);
   if (!theme) return error("Describe your restaurant theme in 8 to 600 characters.");
   if (!process.env.OPENAI_API_KEY) return error("AI QR design is not configured yet. Add OPENAI_API_KEY on the server to enable it.", 503);
-<<<<<<< HEAD
   const target = await productionTrackingUrl(request);
   if ("response" in target) return target.response;
   const key = `${theme.toLowerCase()}:${target.trackingUrl}`;
