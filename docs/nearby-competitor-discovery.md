@@ -1,6 +1,6 @@
 # Nearby competitor discovery
 
-ReviewFlow searches from the signed-in business's saved coordinates. The browser sends only a category and a radius; it never sends a business ID or location to choose another business.
+PrimeReviews searches from the signed-in business's saved coordinates. The browser sends only a category and a radius; it never sends a business ID or location to choose another business.
 
 ## Configure
 

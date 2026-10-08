@@ -6,7 +6,7 @@ export function error(message: string, status = 400) {
 }
 
 export async function requireUser(request: NextRequest) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const token = request.cookies.get("prime_reviews_session")?.value;
   if (!token) return { response: error("Please sign in.", 401) };
   const supabase = supabaseAdmin();
   const { data, error: authError } = await supabase.auth.getUser(token);
@@ -20,6 +20,17 @@ export function publicOrigin(request: NextRequest) {
 
 export function trackingUrl(request: NextRequest, slug: string) {
   return `${publicOrigin(request)}/r/${slug}`;
+}
+
+export function isGoogleReviewUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:") return false;
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    return hostname === "g.page" || hostname === "maps.app.goo.gl" || hostname === "google.com" || hostname.endsWith(".google.com");
+  } catch {
+    return false;
+  }
 }
 
 export function slugify(value: string) {

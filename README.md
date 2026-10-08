@@ -1,6 +1,6 @@
-# ReviewFlow
+# PrimeReviews
 
-ReviewFlow is a QR-to-Google-Review SaaS MVP. It is prepared to deploy as one Next.js application on Vercel with Supabase for authentication and PostgreSQL.
+PrimeReviews is a QR-to-Google-Review SaaS MVP. It is prepared to deploy as one Next.js application on Vercel with Supabase for authentication and PostgreSQL.
 
 ## Production architecture
 
@@ -9,7 +9,7 @@ ReviewFlow is a QR-to-Google-Review SaaS MVP. It is prepared to deploy as one Ne
 - **Supabase Postgres:** businesses, QR codes, scan events, and manually verified review snapshots.
 - **GitHub:** private source repository and Vercel deployment trigger.
 
-The QR payload is a public ReviewFlow tracking URL, for example `https://app.example.com/r/cafe-1234abcd`. It records an anonymous scan event and immediately redirects to the business's saved Google review URL. The destination URL never needs to contain localhost.
+The QR payload is a public PrimeReviews tracking URL, for example `https://app.example.com/r/cafe-1234abcd`. It records an anonymous scan event and immediately redirects to the business's saved Google review URL. The destination URL never needs to contain localhost.
 
 ## Deploy to Supabase and Vercel
 

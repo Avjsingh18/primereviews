@@ -34,15 +34,13 @@ export default function LocalBenchmark() {
   const moreReviewed = result?.myBusiness.reviewCount == null ? null : sortedPlaces.filter((place) => place.reviewCount != null && place.reviewCount > result.myBusiness.reviewCount!).length;
 
   useEffect(() => {
-    const token = localStorage.getItem("reviewflow_token");
-    fetch("/api/business", { headers:{ Authorization:`Bearer ${token}` } }).then((response) => response.ok ? response.json() : null).then((business) => setHasLocation(Boolean(business && business.latitude != null && business.longitude != null))).catch(() => setHasLocation(false));
+    fetch("/api/business").then((response) => response.ok ? response.json() : null).then((business) => setHasLocation(Boolean(business && business.latitude != null && business.longitude != null))).catch(() => setHasLocation(false));
   }, []);
 
   async function search() {
     setLoading(true); setMessage("");
     try {
-      const token = localStorage.getItem("reviewflow_token");
-      const response = await fetch("/api/benchmark", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body:JSON.stringify({ category, radiusKm, limit:25 }) });
+      const response = await fetch("/api/benchmark", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ category, radiusKm, limit:25 }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
       setResult(data);
       if (!data.metadata.isComplete) setMessage(`${data.metadata.returnedCount} businesses found. Some additional listings could not be verified.`);
@@ -52,7 +50,7 @@ export default function LocalBenchmark() {
 
   const userBusiness = result?.myBusiness;
   return <ReputationShell title="See how similar businesses compare nearby" description="Compare Google ratings and review counts within a chosen radius of your business.">
-    {hasLocation === false ? <section className={styles.locationNeeded}><MapPin aria-hidden="true" /><div><strong>Add your business location first</strong><p>ReviewFlow needs your saved latitude and longitude to search businesses within 1 km, 3 km, or 5 km of you.</p></div><Link href="/settings">Add location</Link></section> : null}
+    {hasLocation === false ? <section className={styles.locationNeeded}><MapPin aria-hidden="true" /><div><strong>Add your business location first</strong><p>PrimeReviews needs your saved latitude and longitude to search businesses within 1 km, 3 km, or 5 km of you.</p></div><Link href="/settings">Add location</Link></section> : null}
     <section className={styles.searchCard} aria-label="Search local businesses"><div className={styles.form}><label className={styles.field}><span>Business category</span><select value={category} onChange={(event) => setCategory(event.target.value)} disabled={loading}>{categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className={styles.field}><span>Search radius</span><select value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))} disabled={loading}><option value={1}>Within 1 km</option><option value={3}>Within 3 km</option><option value={5}>Within 5 km</option></select></label><button className={styles.searchButton} disabled={loading || hasLocation !== true} onClick={() => search()} type="button"><Search aria-hidden="true" />{loading ? "Finding businesses near you…" : "Find businesses"}</button></div></section>
     {message ? <p className={result ? styles.notice : styles.error}>{message}</p> : null}
     {result ? <>

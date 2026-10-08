@@ -1,3 +1,17 @@
 "use client";
-import {useState} from "react";import Link from "next/link";import {ChevronDown,LogOut,Settings} from "lucide-react";
-export default function AccountMenu({business}:{business:string}){const [open,setOpen]=useState(false);const logout=()=>{localStorage.removeItem("reviewflow_token");localStorage.removeItem("reviewflow_business");window.location.assign("/login")};const actionStyle={display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 10px",border:0,borderRadius:6,background:"transparent",color:"#30384c",font:"600 13px inherit",textDecoration:"none",cursor:"pointer"} as const;return <div style={{position:"relative",paddingTop:12}}><button aria-expanded={open} aria-haspopup="menu" onClick={()=>setOpen(value=>!value)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,width:"100%",border:0,background:"transparent",padding:"10px 8px",color:"#273047",font:"700 14px inherit",cursor:"pointer",textAlign:"left"}}>{business}<ChevronDown style={{width:17,height:17,transform:open?"rotate(180deg)":"none",transition:"transform .15s"}}/></button>{open&&<div role="menu" style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,right:0,zIndex:5,padding:6,background:"#fff",border:"1px solid #e3e6ee",borderRadius:8,boxShadow:"0 10px 24px rgba(28,38,58,.14)"}}><Link role="menuitem" href="/settings" style={actionStyle}><Settings style={{width:16}}/>Settings</Link><button role="menuitem" onClick={logout} style={actionStyle}><LogOut style={{width:16}}/>Log out</button></div>}</div>}
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronDown, LogOut, Settings } from "lucide-react";
+
+export default function AccountMenu({ business }: { business: string }) {
+  const [open, setOpen] = useState(false);
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    localStorage.removeItem("reviewflow_token");
+    localStorage.removeItem("reviewflow_business");
+    localStorage.removeItem("prime_reviews_business");
+    window.location.assign("/login");
+  };
+  const actionStyle = { display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 10px", border: 0, borderRadius: 6, background: "transparent", color: "#30384c", font: "600 13px inherit", textDecoration: "none", cursor: "pointer" } as const;
+  return <div style={{ position: "relative", paddingTop: 12 }}><button aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen(value => !value)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", border: 0, background: "transparent", padding: "10px 8px", color: "#273047", font: "700 14px inherit", cursor: "pointer", textAlign: "left" }}>{business}<ChevronDown style={{ width: 17, height: 17, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} /></button>{open && <div role="menu" style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, zIndex: 5, padding: 6, background: "#fff", border: "1px solid #e3e6ee", borderRadius: 8, boxShadow: "0 10px 24px rgba(28,38,58,.14)" }}><Link role="menuitem" href="/settings" style={actionStyle}><Settings style={{ width: 16 }} />Settings</Link><button role="menuitem" onClick={logout} style={actionStyle}><LogOut style={{ width: 16 }} />Log out</button></div>}</div>;
+}

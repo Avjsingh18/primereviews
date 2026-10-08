@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { error, requireUser, trackingUrl } from "@/lib/api";
 import { generateQrDesign, normalizeQrTheme, QrDesign } from "@/lib/qr-design";
 import { getCachedJson, setCachedJson } from "@/lib/supabase-cache";
+import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,14 @@ export async function POST(request: NextRequest) {
   if (!process.env.OPENAI_API_KEY) return error("AI QR design is not configured yet. Add OPENAI_API_KEY on the server to enable it.", 503);
   const target = await productionTrackingUrl(request);
   if ("response" in target) return target.response;
+  const limiters = await Promise.all([
+    consumeRateLimit(requestRateLimitKey(request, "qr-design", target.identity), 3, 3600),
+    consumeRateLimit(requestRateLimitKey(request, "qr-design-ip"), 10, 3600),
+  ]);
+  for (const limiter of limiters) {
+    if (limiter.unavailable) return rateLimitUnavailableResponse();
+    if (!limiter.allowed) return rateLimitResponse(limiter.retryAfter);
+  }
   const key = `${theme.toLowerCase()}:${target.trackingUrl}`;
   const cached = await getCachedJson<QrDesign>(`reviewflow:qr-design:${key}`);
   if (cached) return NextResponse.json({ design: cached, cached: true });

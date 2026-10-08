@@ -34,8 +34,9 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
         setNotice(`Confirmation email sent to ${email}. Confirm your email to sign in.`);
         return;
       }
-      localStorage.setItem("reviewflow_token", data.token);
-      localStorage.setItem("reviewflow_business", data.businessName || "");
+      localStorage.removeItem("reviewflow_token");
+      localStorage.removeItem("reviewflow_business");
+      localStorage.removeItem("prime_reviews_business");
       router.push(signup || data.onboardingRequired ? "/onboarding" : "/dashboard");
     } catch {
       setError("We couldn’t reach the secure service. Please refresh and try again.");
@@ -45,7 +46,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   }
 
   return <main className="auth">
-    <Link className="brand" href="/"><span>✦</span> reviewflow</Link>
+    <Link className="brand" href="/"><span>✦</span> PrimeReviews</Link>
     <section className="auth-panel">
       <div className="auth-kicker"><Sparkles aria-hidden="true" />{signup ? "START FOR FREE" : "WELCOME BACK"}</div>
       <h1>{signup ? "Reviews, made remarkably easy." : "Welcome back."}</h1>
@@ -59,9 +60,9 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
         {notice && <p className="form-success" role="status"><CheckCircle2 aria-hidden="true" />{notice}</p>}
         <button className="button auth-button" disabled={loading}>{loading ? "Please wait…" : signup ? "Create account" : "Sign in"}<ArrowRight /></button>
       </form>
-      <p className="switch">{signup ? "Already have an account?" : "New to ReviewFlow?"} <Link href={signup ? "/login" : "/signup"}>{signup ? "Sign in" : "Create an account"}</Link></p>
+      <p className="switch">{signup ? "Already have an account?" : "New to PrimeReviews?"} <Link href={signup ? "/login" : "/signup"}>{signup ? "Sign in" : "Create an account"}</Link></p>
     </section>
-    <aside className="auth-aside" aria-label="ReviewFlow benefits">
+    <aside className="auth-aside" aria-label="PrimeReviews benefits">
       <div className="orb orb-one" /><div className="orb orb-two" />
       <div className="auth-proof"><span className="proof-star">★</span><span>Built for neighbourhood businesses</span></div>
       <div className="auth-aside-copy"><p>Turn every happy visit into a review worth sharing.</p><span>One beautiful QR code. Clear momentum. No busywork.</span></div>

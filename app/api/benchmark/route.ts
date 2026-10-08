@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { categories, Category, haversineDistanceKm, NearbySearchResponse, OpenAIWebSearchProvider } from "@/lib/competitor-discovery";
 import { error, requireUser } from "@/lib/api";
 import { getCachedJson, setCachedJson } from "@/lib/supabase-cache";
+import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,14 @@ export async function POST(request: NextRequest) {
   if (business instanceof NextResponse) return business;
   if ((process.env.COMPETITOR_SEARCH_PROVIDER || "openai") !== "openai") return error("Nearby competitor search is not configured.", 503);
   if (!process.env.OPENAI_API_KEY) return error("Nearby competitor search is not configured. Add OPENAI_API_KEY on the server to enable it.", 503);
+  const limiters = await Promise.all([
+    consumeRateLimit(requestRateLimitKey(request, "benchmark", business.identity), 10, 3600),
+    consumeRateLimit(requestRateLimitKey(request, "benchmark-ip"), 30, 3600),
+  ]);
+  for (const limiter of limiters) {
+    if (limiter.unavailable) return rateLimitUnavailableResponse();
+    if (!limiter.allowed) return rateLimitResponse(limiter.retryAfter);
+  }
   const key = cacheKey(business, input.category, input.radiusKm, input.limit);
   const cached = await getCachedJson<CachedResult>(`reviewflow:benchmark:${key}`);
   if (cached) return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: cached.businesses.length, searchedAt: cached.searchedAt, provider: cached.provider, sourceStatus: cached.sourceStatus, isComplete: cached.isComplete, cached: true }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: cached.businesses });

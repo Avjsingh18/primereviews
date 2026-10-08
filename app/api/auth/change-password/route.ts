@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, requireUser } from "@/lib/api";
 import { supabasePublic } from "@/lib/supabase/server";
+import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const auth = await requireUser(request);
   if ("response" in auth) return auth.response;
+  const limiter = await consumeRateLimit(requestRateLimitKey(request, "change-password", auth.user.id), 5, 900);
+  if (limiter.unavailable) return rateLimitUnavailableResponse();
+  if (!limiter.allowed) return rateLimitResponse(limiter.retryAfter);
   const body = await request.json().catch(() => null);
   const currentPassword = typeof body?.currentPassword === "string" ? body.currentPassword : "";
   const newPassword = typeof body?.newPassword === "string" ? body.newPassword : "";

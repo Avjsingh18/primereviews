@@ -23,9 +23,7 @@ export default function ReputationDashboard() {
   const [scans, setScans] = useState<Point[]>([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("reviewflow_token");
-    if (!token) return;
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers = {};
     Promise.all([fetch("/api/business", { headers }), fetch("/api/analytics/overview", { headers }), fetch("/api/analytics/rating", { headers }), fetch("/api/analytics/reviews", { headers }), fetch("/api/analytics/scans", { headers })])
       .then(async ([businessResponse, overviewResponse, ratingResponse, reviewResponse, scanResponse]) => {
         if (businessResponse.ok) setBusiness((await businessResponse.json()).name);
@@ -42,7 +40,7 @@ export default function ReputationDashboard() {
   const metrics: Metric[] = [
     { title: "Current rating", value: overview?.rating == null ? "—" : overview.rating.toFixed(1), note: overview?.rating == null ? "No rating recorded" : "Manual snapshot", icon: Star },
     { title: "Total reviews", value: overview?.totalReviews == null ? "—" : overview.totalReviews.toLocaleString(), note: overview?.totalReviews == null ? "No reviews recorded" : "Manual snapshot", icon: TrendingUp },
-    { title: "QR scans", value: String(overview?.qrScans ?? 0), note: overview?.qrScans ? "Recorded by ReviewFlow" : "No scans yet", icon: QrCode },
+    { title: "QR scans", value: String(overview?.qrScans ?? 0), note: overview?.qrScans ? "Recorded by PrimeReviews" : "No scans yet", icon: QrCode },
     { title: "Rating change", value: overview?.ratingChange == null ? "—" : `${overview.ratingChange >= 0 ? "+" : ""}${overview.ratingChange.toFixed(1)}`, note: overview?.ratingChange == null ? "No comparison yet" : "Since first snapshot", icon: ArrowUpRight },
   ];
 
@@ -54,6 +52,6 @@ export default function ReputationDashboard() {
       <article className={styles.chart}><h2>Rating trend</h2><p>Recorded Google rating over time.</p><ResponsiveContainer width="100%" height={238}><LineChart data={ratingData}><CartesianGrid vertical={false} stroke="#edf0f6" /><XAxis dataKey="label" axisLine={false} tickLine={false} /><YAxis domain={[0, 5]} axisLine={false} tickLine={false} /><Tooltip /><Line type="stepAfter" dataKey="rating" stroke="#efa93c" strokeWidth={2.5} dot={{ fill: "#efa93c", r: 3 }} /></LineChart></ResponsiveContainer></article>
     </section>
     <section className={styles.scanChart}><div><div><h2>QR scans over time</h2><p>How many people scanned your review code.</p></div><span><i />QR scans</span></div><ResponsiveContainer width="100%" height={210}><AreaChart data={scanData}><defs><linearGradient id="qr-scans" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#2aa982" stopOpacity=".25" /><stop offset="1" stopColor="#2aa982" stopOpacity="0" /></linearGradient></defs><CartesianGrid vertical={false} stroke="#edf0f6" /><XAxis dataKey="label" axisLine={false} tickLine={false} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip /><Area type="monotone" dataKey="scans" stroke="#2aa982" strokeWidth={2.5} fill="url(#qr-scans)" /></AreaChart></ResponsiveContainer></section>
-    <section className={styles.dashboardComparison}><div><p>SNAPSHOT SUMMARY</p><h2>What the local data shows</h2></div><div><article><small>RATING</small><b>{overview?.rating == null ? "—" : overview.rating.toFixed(1)}</b><span>Current rating</span></article><article><small>NEW REVIEWS</small><b>{overview?.newReviews == null ? "—" : `+${overview.newReviews}`}</b><span>In the last 30 days</span></article><article><small>QR SCANS</small><b>{overview?.qrScans ?? 0}</b><span>Recorded by ReviewFlow</span></article><article><small>REVIEW TOTAL</small><b>{overview?.totalReviews ?? "—"}</b><span>Latest saved snapshot</span></article></div></section>
+    <section className={styles.dashboardComparison}><div><p>SNAPSHOT SUMMARY</p><h2>What the local data shows</h2></div><div><article><small>RATING</small><b>{overview?.rating == null ? "—" : overview.rating.toFixed(1)}</b><span>Current rating</span></article><article><small>NEW REVIEWS</small><b>{overview?.newReviews == null ? "—" : `+${overview.newReviews}`}</b><span>In the last 30 days</span></article><article><small>QR SCANS</small><b>{overview?.qrScans ?? 0}</b><span>Recorded by PrimeReviews</span></article><article><small>REVIEW TOTAL</small><b>{overview?.totalReviews ?? "—"}</b><span>Latest saved snapshot</span></article></div></section>
   </ReputationShell>;
 }

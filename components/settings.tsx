@@ -14,7 +14,7 @@ export default function Settings() {
   const [locating, setLocating] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("reviewflow_token")}` });
+  const headers = () => ({ "Content-Type": "application/json" });
 
   useEffect(() => {
     fetch(`${api}/api/business`, { headers: headers() }).then((response) => response.json()).then((business) => {

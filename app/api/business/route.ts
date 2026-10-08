@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { error, requireUser, slugify, trackingUrl } from "@/lib/api";
+import { error, isGoogleReviewUrl, requireUser, slugify, trackingUrl } from "@/lib/api";
 
 type Location = { latitude: number; longitude: number };
 type Business = { id: string; name: string; slug: string; google_review_url: string; latitude: number | null; longitude: number | null };
@@ -9,7 +9,7 @@ function validInput(body: unknown) {
   const input = body as { name?: unknown; googleReviewUrl?: unknown; latitude?: unknown; longitude?: unknown } | null;
   const name = typeof input?.name === "string" ? input.name.trim() : "";
   const googleReviewUrl = typeof input?.googleReviewUrl === "string" ? input.googleReviewUrl.trim() : "";
-  try { const parsed = new URL(googleReviewUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { return null; }
+  if (!isGoogleReviewUrl(googleReviewUrl)) return null;
 
   const hasLatitude = Object.hasOwn(input ?? {}, "latitude");
   const hasLongitude = Object.hasOwn(input ?? {}, "longitude");

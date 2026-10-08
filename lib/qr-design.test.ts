@@ -16,6 +16,6 @@ test("locks the artwork prompt to a safe QR-compatible background", () => {
 });
 
 test("creates a high-correction QR data URL", async () => {
-  const qr = await createReliableQrDataUrl("https://reviewflow.example/r/cafe");
+  const qr = await createReliableQrDataUrl("https://primereviews.example/r/cafe");
   assert.match(qr, /^data:image\/png;base64,/);
 });
