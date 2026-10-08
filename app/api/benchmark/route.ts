@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { categories, Category, haversineDistanceKm, NearbySearchResponse, OpenAIWebSearchProvider } from "@/lib/competitor-discovery";
 import { error, requireUser } from "@/lib/api";
-import { getCachedJson, redis, setCachedJson } from "@/lib/redis-cache";
+import { getCachedJson, setCachedJson } from "@/lib/supabase-cache";
 
 export const runtime = "nodejs";
 
@@ -57,8 +57,6 @@ export async function POST(request: NextRequest) {
   if (business instanceof NextResponse) return business;
   if ((process.env.COMPETITOR_SEARCH_PROVIDER || "openai") !== "openai") return error("Nearby competitor search is not configured.", 503);
   if (!process.env.OPENAI_API_KEY) return error("Nearby competitor search is not configured. Add OPENAI_API_KEY on the server to enable it.", 503);
-  try { await redis(); } catch { return error("Nearby search cache is unavailable. Start Redis locally or configure REDIS_URL.", 503); }
-
   const key = cacheKey(business, input.category, input.radiusKm, input.limit);
   const cached = await getCachedJson<CachedResult>(`reviewflow:benchmark:${key}`);
   if (cached) return NextResponse.json({ success: true, search: { latitude: business.latitude, longitude: business.longitude, category: input.category, radiusMeters: input.radiusKm * 1000, requestedLimit: input.limit }, metadata: { returnedCount: cached.businesses.length, searchedAt: cached.searchedAt, provider: cached.provider, sourceStatus: cached.sourceStatus, isComplete: cached.isComplete, cached: true }, myBusiness: { rating: business.rating, reviewCount: business.reviewCount }, businesses: cached.businesses });
