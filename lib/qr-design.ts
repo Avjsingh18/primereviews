@@ -12,6 +12,17 @@ export type QrDesign = {
 
 type ImageGeneration = { data?: Array<{ b64_json?: string }> };
 
+export class QrArtworkError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+    readonly providerCode?: string,
+  ) {
+    super(message);
+    this.name = "QrArtworkError";
+  }
+}
+
 export function normalizeQrTheme(value: unknown) {
   if (typeof value !== "string") return null;
   const theme = value.replace(/\s+/g, " ").trim();
@@ -69,7 +80,16 @@ export async function generateQrDesign({
   if (!response.ok) {
     const body = await readJson(response, 8192).catch(() => null) as { error?: { code?: string } } | null;
     const code = body?.error?.code;
-    throw new Error(code === "moderation_blocked" ? "Theme artwork was blocked. Try a neutral restaurant description." : "The artwork service is unavailable.");
+    if (code === "moderation_blocked") {
+      throw new QrArtworkError("Theme artwork was blocked. Try a neutral restaurant description.", response.status, code);
+    }
+    if (code === "insufficient_quota" || code === "billing_not_active") {
+      throw new QrArtworkError("The AI artwork service needs API billing or credits before it can generate designs.", response.status, code);
+    }
+    if (code === "organization_verification_required") {
+      throw new QrArtworkError("The AI artwork service needs OpenAI organization verification before it can generate designs.", response.status, code);
+    }
+    throw new QrArtworkError("The artwork service is unavailable. Please try again later.", response.status, code);
   }
 
   const result = await readJson(response, 3000000) as ImageGeneration;

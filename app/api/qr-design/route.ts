@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { error, requireUser, trackingUrl } from "@/lib/api";
-import { generateQrDesign, normalizeQrTheme } from "@/lib/qr-design";
+import { generateQrDesign, normalizeQrTheme, QrArtworkError } from "@/lib/qr-design";
 import { getCachedJson, setCachedJson } from "@/lib/supabase-cache";
 import { enforceLimit } from "@/lib/rate-limit";
 import { aiCacheKey, aiConfiguration, finishAi, reserveAi } from "@/lib/security/ai";
@@ -30,8 +30,12 @@ export const POST = safeRoute(async (request: NextRequest) => {
     await setCachedJson(key, auth.user.id, stored, 86400);
     await finishAi(key, reservation.reservation, "complete");
     return json({ design: await presentArtwork(auth.user.id, stored, target), cached: false });
-  } catch {
+  } catch (caught) {
     await finishAi(key, reservation.reservation, "failed");
+    if (caught instanceof QrArtworkError) {
+      console.warn("QR artwork provider request failed", { status: caught.status, code: caught.providerCode ?? "unknown" });
+      return error(caught.message, 502);
+    }
     return error("The artwork service is unavailable. Please try again later.", 502);
   }
 });
