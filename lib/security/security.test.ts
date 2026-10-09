@@ -52,7 +52,10 @@ test("account quota key does not change with IP; separate IP quota does", () => 
   const second = new NextRequest("https://app.example", { headers: { "x-real-ip": "192.0.2.2" } });
   assert.equal(requestRateLimitKey(first, "user", "owner"), requestRateLimitKey(second, "user", "owner"));
   assert.notEqual(requestRateLimitKey(first, "ip"), requestRateLimitKey(second, "ip"));
-  assert.doesNotMatch(requestRateLimitKey(first, "user", "email@example.com"), /email|192/);
+  const accountKey = requestRateLimitKey(first, "user", "email@example.com");
+  assert.match(accountKey, /^[a-f0-9]{64}$/);
+  assert.notEqual(accountKey, "email@example.com");
+  assert.notEqual(accountKey, "192.0.2.1");
 });
 test("encrypted session tokens resist tampering and cross-session substitution", () => {
   const encrypted = encryptToken("provider-access-token", "one:access");
