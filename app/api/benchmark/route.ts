@@ -10,7 +10,7 @@ import { json, readJson, safeRoute } from "@/lib/security/http";
 export const runtime = "nodejs";
 
 function cacheKey(ownerId: string, value: unknown) {
-  return `google-nearby:v1:${createHash("sha256").update(JSON.stringify([ownerId, value])).digest("hex")}`;
+  return `google-nearby:v2:${createHash("sha256").update(JSON.stringify([ownerId, value])).digest("hex")}`;
 }
 
 export const POST = safeRoute(async (request: NextRequest) => {

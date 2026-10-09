@@ -27,6 +27,7 @@ test("Google Places Nearby Search uses the selected radius and filters invalid l
     const body = JSON.parse(String(sent?.body));
     assert.equal(body.locationRestriction.circle.radius, 3000);
     assert.deepEqual(body.includedTypes, ["cafe"]);
+    assert.equal(body.rankPreference, "POPULARITY");
     assert.equal(result.businesses.length, 1);
     assert.equal(result.businesses[0].name, "Alpha Cafe");
     assert.equal(result.businesses[0].rating, 4.8);
@@ -48,6 +49,16 @@ test("Google Places finds the current business by matching its name and location
     assert.equal(result.placeId, "right");
     assert.equal(result.rating, 4.7);
     assert.equal(result.reviewCount, 63);
+  } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
+});
+
+test("Google Places refuses a loosely matched business instead of showing another listing's rating", async () => {
+  const originalFetch = global.fetch; const originalKey = process.env.GOOGLE_MAPS_API_KEY; process.env.GOOGLE_MAPS_API_KEY = "fixture-key";
+  global.fetch = async () => new Response(JSON.stringify({ places: [
+    { id:"nearby", displayName:{ text:"Serto Garden Centre" }, location:{ latitude:28.6213, longitude:77.4298 }, rating:5, userRatingCount:6 },
+  ] }), { status:200 });
+  try {
+    await assert.rejects(() => new GooglePlacesProvider().findBusinessMetrics({ name:"R.SERTO NURSERY", latitude:28.62127, longitude:77.42985 }), /couldn’t match/);
   } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
 });
 

@@ -65,7 +65,7 @@ function matchScore(expected: string, actual: string) {
 
 export class GooglePlacesProvider {
   async searchNearbyBusinesses(input: NearbySearchRequest): Promise<NearbySearchResponse> {
-    const places = await requestPlaces("/places:searchNearby", nearbyFields, { includedTypes: [categories[input.category].googleType], maxResultCount: input.limit, rankPreference: "DISTANCE", locationRestriction: { circle: { center: { latitude: input.latitude, longitude: input.longitude }, radius: input.radiusKm * 1000 } } });
+    const places = await requestPlaces("/places:searchNearby", nearbyFields, { includedTypes: [categories[input.category].googleType], maxResultCount: input.limit, rankPreference: "POPULARITY", locationRestriction: { circle: { center: { latitude: input.latitude, longitude: input.longitude }, radius: input.radiusKm * 1000 } } });
     const retrievedAt = new Date().toISOString(); const seen = new Set<string>();
     const businesses: Competitor[] = places.flatMap((place) => {
       const name = place.displayName?.text;
@@ -85,7 +85,8 @@ export class GooglePlacesProvider {
       if (!name || !place.location || place.rating == null || place.userRatingCount == null) return [];
       const distanceKm = haversineDistanceKm(business.latitude, business.longitude, place.location.latitude, place.location.longitude);
       return [{ place, name, distanceKm, score: matchScore(business.name, name) }];
-    }).filter(({ distanceKm, score }) => distanceKm <= 5 && score >= 0.6).sort((a, b) => b.score - a.score || a.distanceKm - b.distanceKm);
+    // Do not accept a merely similar listing. An incorrect rating is worse than no rating.
+    }).filter(({ distanceKm, score }) => distanceKm <= 5 && score >= 0.9).sort((a, b) => b.score - a.score || a.distanceKm - b.distanceKm);
     const winner = ranked[0];
     if (!winner) throw new GooglePlacesError(404, "We couldn’t match this business on Google Maps. Check its name and saved location.");
     return { rating: winner.place.rating!, reviewCount: winner.place.userRatingCount!, googleMapsUrl: winner.place.googleMapsUri ?? null, placeId: winner.place.id, placeName: winner.name, retrievedAt: new Date().toISOString() };

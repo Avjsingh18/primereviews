@@ -9,7 +9,8 @@ export type GoogleBusinessIdentity = { id: string; name: string; googleReviewUrl
 
 function cacheKey(ownerId: string, business: GoogleBusinessIdentity) {
   const input = [ownerId, business.id, business.name, business.googleReviewUrl, business.latitude, business.longitude];
-  return `google-metrics:v1:${createHash("sha256").update(JSON.stringify(input)).digest("hex")}`;
+  // v2 invalidates any cached response obtained using the previous loose name match.
+  return `google-metrics:v2:${createHash("sha256").update(JSON.stringify(input)).digest("hex")}`;
 }
 
 export async function getCurrentGoogleBusinessMetrics(ownerId: string, business: GoogleBusinessIdentity) {
