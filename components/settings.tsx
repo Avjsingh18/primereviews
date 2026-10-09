@@ -13,6 +13,7 @@ export default function Settings() {
   const [longitude, setLongitude] = useState("");
   const [locating, setLocating] = useState(false);
   const [message, setMessage] = useState("");
+  const [savedToast, setSavedToast] = useState(false);
   const [error, setError] = useState("");
   const headers = () => ({ "Content-Type": "application/json" });
 
@@ -39,7 +40,8 @@ export default function Settings() {
     if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude) || parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180) return setError("Enter a valid business location.");
     const response = await fetch(`${api}/api/business`, { method:"PUT", headers:headers(), body:JSON.stringify({ name, googleReviewUrl:url, latitude:parsedLatitude, longitude:parsedLongitude }) });
     if (!response.ok) return setError("Enter a valid Google review URL and business location.");
-    setMessage("Business details and location saved.");
+    setMessage("Business details and location saved."); setSavedToast(true);
+    window.setTimeout(() => setSavedToast(false), 3500);
   }
 
   async function password(event: React.FormEvent<HTMLFormElement>) {
@@ -60,7 +62,7 @@ export default function Settings() {
     } catch { setError("Could not sign out securely. Please try again."); }
   }
 
-  return <ReputationShell title="Account settings" description="Keep your review link, business location, Google connection, and account secure."><div className="settings">{error ? <p className="form-error">{error}</p> : null}{message ? <p className="settings-success"><Check />{message}</p> : null}
+  return <ReputationShell title="Account settings" description="Keep your review link, business location, Google connection, and account secure."><div className="settings">{savedToast ? <div className="settings-toast" role="status"><Check />Your details are saved.</div> : null}{error ? <p className="form-error">{error}</p> : null}{message ? <p className="settings-success"><Check />{message}</p> : null}
     <section className="card settings-card"><h2>Business details</h2><form onSubmit={business}><label>Business name<input value={name} onChange={(event) => setName(event.target.value)} required /></label><label>Google review URL<input value={url} onChange={(event) => setUrl(event.target.value)} required type="url" /></label><div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:18 }}><div><b style={{ fontSize:13 }}>Business location</b><p className="muted" style={{ marginTop:4 }}>Used for your local competitor radius.</p></div><button type="button" className="outline" onClick={requestLocation} disabled={locating}><Crosshair />{locating ? "Finding…" : "Use my location"}</button></div><div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}><label>Latitude<input type="number" inputMode="decimal" value={latitude} onChange={(event) => setLatitude(event.target.value)} required /></label><label>Longitude<input type="number" inputMode="decimal" value={longitude} onChange={(event) => setLongitude(event.target.value)} required /></label></div><p className="muted" style={{ fontSize:12, marginTop:10 }}><MapPin style={{ width:14, verticalAlign:"-2px" }} /> Coordinates are used only to search Google Places within your selected nearby radius.</p><button className="button"><Save />Save business details</button></form></section>
     <section className="card settings-card"><h2>Change password</h2><form onSubmit={password}><label>Current password<input name="current" required type="password" autoComplete="current-password" /></label><label>New password<input name="new" required minLength={12} maxLength={72} type="password" autoComplete="new-password" /></label><label>Confirm new password<input name="confirm" required minLength={12} maxLength={72} type="password" autoComplete="new-password" /></label><button className="outline"><Lock />Update password</button></form></section>
     <section className="card settings-card"><h2>Google Business Profile</h2><p className="muted">Connect the Google account that manages this business to sync reviews and publish owner-approved replies.</p><button className="outline" disabled title="Google OAuth has not been configured yet"><Link2 />Connect Google Business Profile</button><p className="muted" style={{ fontSize:12, marginTop:12 }}>OAuth setup is required before this connection can be enabled.</p></section>
