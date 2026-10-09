@@ -26,7 +26,7 @@ test("Google Places Nearby Search uses the selected radius and filters invalid l
     const result = await new GooglePlacesProvider().searchNearbyBusinesses({ latitude:28.62127, longitude:77.42985, category:"cafe", radiusKm:3, limit:20 });
     const body = JSON.parse(String(sent?.body));
     assert.equal(body.locationRestriction.circle.radius, 3000);
-    assert.deepEqual(body.includedTypes, ["cafe"]);
+    assert.deepEqual(body.includedTypes, ["cafe", "coffee_shop", "coffee_stand", "tea_house", "bakery"]);
     assert.equal(body.rankPreference, "POPULARITY");
     assert.equal(result.businesses.length, 1);
     assert.equal(result.businesses[0].name, "Alpha Cafe");
@@ -35,6 +35,25 @@ test("Google Places Nearby Search uses the selected radius and filters invalid l
     assert.equal(result.businesses[0].distanceVerified, true);
     assert.equal(result.provider, "google_places");
     assert.equal(result.sourceStatus, "verified");
+  } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
+});
+
+test("combined category searches use Nearby types and radius-restricted Text Search keywords", async () => {
+  const originalFetch = global.fetch; const originalKey = process.env.GOOGLE_MAPS_API_KEY; process.env.GOOGLE_MAPS_API_KEY = "fixture-key";
+  type PlacesRequestBody = { includedTypes?: string[]; rankPreference?: string; textQuery?: string; locationRestriction: { circle: { radius: number } } };
+  const requests: Array<{ url: string; body: PlacesRequestBody }> = [];
+  global.fetch = async (input, init) => {
+    requests.push({ url: String(input), body: JSON.parse(String(init?.body)) as PlacesRequestBody });
+    return new Response(JSON.stringify({ places: [] }), { status:200 });
+  };
+  try {
+    await new GooglePlacesProvider().searchNearbyBusinesses({ latitude:28.62127, longitude:77.42985, category:"pg", radiusKm:3, limit:20 });
+    assert.equal(requests.length, 6);
+    assert.deepEqual(requests[0].body.includedTypes, ["hostel"]);
+    assert.equal(requests[0].body.rankPreference, "POPULARITY");
+    assert.equal(requests[0].body.locationRestriction.circle.radius, 3000);
+    assert.deepEqual(requests.slice(1).map(({ body }) => body.textQuery), ["PG", "paying guest", "student dormitory", "hostel", "lodge"]);
+    assert.ok(requests.slice(1).every(({ url, body }) => url.endsWith("/places:searchText") && body.locationRestriction.circle.radius === 3000));
   } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
 });
 

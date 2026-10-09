@@ -65,7 +65,16 @@ function matchScore(expected: string, actual: string) {
 
 export class GooglePlacesProvider {
   async searchNearbyBusinesses(input: NearbySearchRequest): Promise<NearbySearchResponse> {
-    const places = await requestPlaces("/places:searchNearby", nearbyFields, { includedTypes: [categories[input.category].googleType], maxResultCount: input.limit, rankPreference: "POPULARITY", locationRestriction: { circle: { center: { latitude: input.latitude, longitude: input.longitude }, radius: input.radiusKm * 1000 } } });
+    const category = categories[input.category];
+    const locationRestriction = { circle: { center: { latitude: input.latitude, longitude: input.longitude }, radius: input.radiusKm * 1000 } };
+    const searches: Promise<z.infer<typeof placeSchema>[]>[] = [];
+    if (category.nearbyTypes.length) {
+      searches.push(requestPlaces("/places:searchNearby", nearbyFields, { includedTypes: category.nearbyTypes, maxResultCount: input.limit, rankPreference: "POPULARITY", locationRestriction }));
+    }
+    for (const textQuery of category.textQueries) {
+      searches.push(requestPlaces("/places:searchText", textFields, { textQuery, pageSize: input.limit, locationRestriction }));
+    }
+    const places = (await Promise.all(searches)).flat();
     const retrievedAt = new Date().toISOString(); const seen = new Set<string>();
     const businesses: Competitor[] = places.flatMap((place) => {
       const name = place.displayName?.text;
@@ -73,8 +82,8 @@ export class GooglePlacesProvider {
       const distanceKm = haversineDistanceKm(input.latitude, input.longitude, place.location.latitude, place.location.longitude);
       if (distanceKm > input.radiusKm + 0.001) return [];
       seen.add(place.id);
-      return [{ id: place.id, name, category: place.primaryType || categories[input.category].label, address: place.formattedAddress ?? null, rating: place.rating ?? null, reviewCount: place.userRatingCount ?? null, ratingSource: "google" as const, latitude: place.location.latitude, longitude: place.location.longitude, distanceKm: Number(distanceKm.toFixed(2)), distanceVerified: true as const, sourceUrl: null, googleMapsUrl: place.googleMapsUri ?? null, verificationStatus: "verified" as const, retrievedAt }];
-    }).sort((a, b) => (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY)).slice(0, input.limit);
+      return [{ id: place.id, name, category: place.primaryType || category.label, address: place.formattedAddress ?? null, rating: place.rating ?? null, reviewCount: place.userRatingCount ?? null, ratingSource: "google" as const, latitude: place.location.latitude, longitude: place.location.longitude, distanceKm: Number(distanceKm.toFixed(2)), distanceVerified: true as const, sourceUrl: null, googleMapsUrl: place.googleMapsUri ?? null, verificationStatus: "verified" as const, retrievedAt }];
+    }).slice(0, input.limit);
     return { businesses, provider: "google_places", sourceStatus: "verified", isComplete: false, searchedAt: retrievedAt };
   }
 

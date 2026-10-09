@@ -1,12 +1,15 @@
 export const categories = {
-  cafe: { label: "Cafés", googleType: "cafe" },
-  restaurant: { label: "Restaurants", googleType: "restaurant" },
-  hotel: { label: "Hotels", googleType: "lodging" },
-  salon: { label: "Salons", googleType: "beauty_salon" },
-  clinic: { label: "Clinics", googleType: "medical_clinic" },
-  "coaching centre": { label: "Coaching centres", googleType: "school" },
-  "plant nursery": { label: "Nurseries", googleType: "garden_center" },
-  gym: { label: "Gyms", googleType: "gym" },
+  cafe: { label: "Cafés", nearbyTypes: ["cafe", "coffee_shop", "coffee_stand", "tea_house", "bakery"], textQueries: [] },
+  restaurant: { label: "Restaurants", nearbyTypes: ["restaurant", "fast_food_restaurant", "food_court", "buffet_restaurant"], textQueries: [] },
+  hotel: { label: "Hotels", nearbyTypes: ["hotel", "resort_hotel", "inn", "bed_and_breakfast"], textQueries: [] },
+  pg: { label: "PG", nearbyTypes: ["hostel"], textQueries: ["PG", "paying guest", "student dormitory", "hostel", "lodge"] },
+  salon: { label: "Salons", nearbyTypes: ["beauty_salon", "hair_salon", "hair_care", "barber_shop", "nail_salon", "beautician"], textQueries: [] },
+  clinic: { label: "Clinics", nearbyTypes: ["medical_clinic", "doctor", "medical_center", "dental_clinic", "dentist", "skin_care_clinic", "physiotherapist"], textQueries: [] },
+  "coaching-centre": { label: "Coaching centres", nearbyTypes: [], textQueries: ["coaching institute"] },
+  "plant-nursery": { label: "Plant nurseries", nearbyTypes: ["garden_center"], textQueries: ["nursery"] },
+  "day-care": { label: "Day care", nearbyTypes: ["child_care_agency"], textQueries: ["daycare", "baby care"] },
+  preschool: { label: "Preschools", nearbyTypes: ["preschool"], textQueries: [] },
+  gym: { label: "Gyms", nearbyTypes: ["gym", "fitness_center", "yoga_studio"], textQueries: [] },
 } as const;
 
 export type Category = keyof typeof categories;

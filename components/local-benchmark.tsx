@@ -6,7 +6,7 @@ import { ExternalLink, MapPin, Search, Star, Trophy } from "lucide-react";
 import ReputationShell from "./reputation-shell";
 import styles from "./local-benchmark.module.css";
 
-const categories = [{ value:"cafe", label:"Cafés" }, { value:"restaurant", label:"Restaurants" }, { value:"hotel", label:"Hotels" }, { value:"salon", label:"Salons" }, { value:"clinic", label:"Clinics" }, { value:"coaching centre", label:"Coaching centres" }, { value:"plant nursery", label:"Nurseries" }, { value:"gym", label:"Gyms" }];
+const categories = [{ value:"cafe", label:"Cafés" }, { value:"restaurant", label:"Restaurants" }, { value:"hotel", label:"Hotels" }, { value:"pg", label:"PG" }, { value:"salon", label:"Salons" }, { value:"clinic", label:"Clinics" }, { value:"coaching-centre", label:"Coaching centres" }, { value:"plant-nursery", label:"Plant nurseries" }, { value:"day-care", label:"Day care" }, { value:"preschool", label:"Preschools" }, { value:"gym", label:"Gyms" }];
 type SortBy = "rating" | "reviews" | "distance" | "name";
 type Place = { id:string; name:string; category:string; address:string|null; rating:number|null; reviewCount:number|null; ratingSource:"google"|null; distanceKm:number|null; distanceVerified:boolean; sourceUrl:string|null; googleMapsUrl:string|null; verificationStatus:"verified"|"needs_verification"; retrievedAt:string };
 type Result = { businesses:Place[]; metadata:{ returnedCount:number; searchedAt:string; sourceStatus:"verified"; isComplete:boolean; cached:boolean }; myBusiness:{ rating:number|null; reviewCount:number|null; cached:boolean } };
