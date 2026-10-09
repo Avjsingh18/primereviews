@@ -49,7 +49,8 @@ export default function Onboarding() {
       try {
         const response = await fetch("/api/business", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: businessName, googleReviewUrl: reviewUrl, latitude: parsedLatitude, longitude: parsedLongitude }) });
         if (!response.ok) throw new Error();
-        await fetch("/api/business/qr", { method: "POST" });
+        const qrResponse = await fetch("/api/business/qr", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        if (!qrResponse.ok) throw new Error("Could not create your QR code. Please try again.");
         setError(""); setStep(4);
       } catch { setError("Couldn’t save your business location. Please try again."); }
       return;

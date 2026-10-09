@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { z } from "zod";
+import { readJson } from "@/lib/security/http";
 
 export const categories = {
   cafe: { label: "Cafés", variants: ["cafes", "coffee shops", "coffee houses"] },
@@ -58,7 +59,11 @@ function citedUrls(payload: unknown) {
 }
 
 function isGoogleUrl(value: string) {
-  try { const host = new URL(value).hostname.toLowerCase(); return host === "google.com" || host.endsWith(".google.com"); } catch { return false; }
+  try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password && !url.port && (url.hostname === "google.com" || url.hostname === "www.google.com" || url.hostname === "maps.google.com") && url.pathname.startsWith("/maps/"); } catch { return false; }
+}
+function safeSource(value: string | null) {
+  if (!value) return null;
+  try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password && !url.port && value.length <= 2048 ? value : null; } catch { return null; }
 }
 
 function stableId(name: string, address: string | null) { return createHash("sha256").update(`${name.trim().toLowerCase()}|${address?.trim().toLowerCase() ?? ""}`).digest("hex").slice(0, 24); }
@@ -94,10 +99,10 @@ export class OpenAIWebSearchProvider implements BusinessSearchProvider {
       const response = await fetch("https://api.openai.com/v1/responses", {
         method: "POST", signal: controller.signal,
         headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: this.model, tool_choice: "required", tools: [{ type: "web_search", search_context_size: "medium" }], text: { format: { type: "json_schema", name: "nearby_businesses", strict: true, schema } }, input: prompt }),
+        body: JSON.stringify({ model: this.model, store: false, max_output_tokens: 6000, max_tool_calls: 2, tool_choice: "required", tools: [{ type: "web_search", search_context_size: "low" }], text: { format: { type: "json_schema", name: "nearby_businesses", strict: true, schema } }, input: prompt }),
       });
       if (!response.ok) throw new Error(`OpenAI returned ${response.status}`);
-      const payload = await response.json(); const parsed = rawResponseSchema.safeParse(JSON.parse(outputText(payload)));
+      const payload = await readJson(response, 262144); const parsed = rawResponseSchema.safeParse(JSON.parse(outputText(payload)));
       if (!parsed.success) throw new Error("OpenAI returned an invalid business-search response");
       const citations = citedUrls(payload); const radius = request.radiusKm; const seen = new Set<string>();
       const businesses = parsed.data.businesses.flatMap((business) => {
@@ -106,11 +111,12 @@ export class OpenAIWebSearchProvider implements BusinessSearchProvider {
         const hasCoordinates = business.latitude != null && business.longitude != null;
         const distanceKm = hasCoordinates ? haversineDistanceKm(request.latitude, request.longitude, business.latitude!, business.longitude!) : null;
         if (distanceKm != null && distanceKm > radius) return [];
-        const sourceUrl = business.sourceUrl && citations.has(business.sourceUrl) ? business.sourceUrl : null;
+        const sourceUrl = business.sourceUrl && citations.has(business.sourceUrl) ? safeSource(business.sourceUrl) : null;
         const googleVerified = Boolean(sourceUrl && isGoogleUrl(sourceUrl) && business.ratingSource === "google" && business.rating != null && business.reviewCount != null);
-        return [{ id: stableId(business.name, business.address), name: business.name, category: business.category, address: business.address, latitude: business.latitude, longitude: business.longitude, distanceKm: distanceKm == null ? null : Number(distanceKm.toFixed(2)), distanceVerified: distanceKm != null, sourceUrl, googleMapsUrl: business.googleMapsUrl && citations.has(business.googleMapsUrl) ? business.googleMapsUrl : null, rating: googleVerified ? business.rating : null, reviewCount: googleVerified ? business.reviewCount : null, ratingSource: googleVerified ? "google" as const : null, verificationStatus: googleVerified && distanceKm != null ? "verified" as const : "needs_verification" as const, retrievedAt: searchedAt }];
+        // A citation is not independent verification of model-extracted numbers.
+        return [{ id: stableId(business.name, business.address), name: business.name, category: business.category, address: business.address, latitude: business.latitude, longitude: business.longitude, distanceKm: distanceKm == null ? null : Number(distanceKm.toFixed(2)), distanceVerified: false, sourceUrl, googleMapsUrl: business.googleMapsUrl && citations.has(business.googleMapsUrl) && isGoogleUrl(business.googleMapsUrl) ? business.googleMapsUrl : null, rating: googleVerified ? business.rating : null, reviewCount: googleVerified ? business.reviewCount : null, ratingSource: googleVerified ? "google" as const : null, verificationStatus: "needs_verification" as const, retrievedAt: searchedAt }];
       }).sort((a, b) => Number(b.distanceVerified) - Number(a.distanceVerified) || (b.rating ?? -1) - (a.rating ?? -1) || (b.reviewCount ?? -1) - (a.reviewCount ?? -1)).slice(0, request.limit);
-      return { businesses, provider: "openai_web_search", sourceStatus: businesses.every((business) => business.verificationStatus === "verified") ? "verified" : "partially_verified", isComplete: businesses.length >= request.limit, searchedAt };
+      return { businesses, provider: "openai_web_search", sourceStatus: "partially_verified", isComplete: false, searchedAt };
     } finally { clearTimeout(timeout); }
   }
 }

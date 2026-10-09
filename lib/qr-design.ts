@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { readJson } from "@/lib/security/http";
 
 export const QR_DESIGN_MAX_THEME_LENGTH = 600;
 
@@ -55,6 +56,7 @@ export async function generateQrDesign({
     headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
+      n: 1,
       prompt: qrArtworkPrompt(theme),
       size: "1024x1024",
       quality: "low",
@@ -65,12 +67,12 @@ export async function generateQrDesign({
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => null) as { error?: { code?: string } } | null;
+    const body = await readJson(response, 8192).catch(() => null) as { error?: { code?: string } } | null;
     const code = body?.error?.code;
     throw new Error(code === "moderation_blocked" ? "Theme artwork was blocked. Try a neutral restaurant description." : "The artwork service is unavailable.");
   }
 
-  const result = await response.json() as ImageGeneration;
+  const result = await readJson(response, 3000000) as ImageGeneration;
   const image = result.data?.[0]?.b64_json;
   if (!image) throw new Error("The artwork service did not return an image.");
 

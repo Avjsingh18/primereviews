@@ -6,7 +6,10 @@ import { ChevronDown, LogOut, Settings } from "lucide-react";
 export default function AccountMenu({ business }: { business: string }) {
   const [open, setOpen] = useState(false);
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    try {
+      const result = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      if (!result.ok) throw new Error();
+    } catch { window.alert("Logout failed. Please try again."); return; }
     localStorage.removeItem("reviewflow_token");
     localStorage.removeItem("reviewflow_business");
     localStorage.removeItem("prime_reviews_business");

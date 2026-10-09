@@ -1,61 +1,37 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { error, requireUser, trackingUrl } from "@/lib/api";
-import { generateQrDesign, normalizeQrTheme, QrDesign } from "@/lib/qr-design";
+import { generateQrDesign, normalizeQrTheme } from "@/lib/qr-design";
 import { getCachedJson, setCachedJson } from "@/lib/supabase-cache";
-import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
-
+import { enforceLimit } from "@/lib/rate-limit";
+import { aiCacheKey, aiConfiguration, finishAi, reserveAi } from "@/lib/security/ai";
+import { presentArtwork, storeArtwork, StoredArtwork } from "@/lib/security/artwork";
+import { json, readJson, safeRoute } from "@/lib/security/http";
 export const runtime = "nodejs";
 
-const pending = new Map<string, Promise<QrDesign>>();
-const cacheTtlMs = Math.max(60, Number(process.env.QR_DESIGN_CACHE_TTL_SECONDS || 86400)) * 1000;
-
-async function productionTrackingUrl(request: NextRequest) {
-  const auth = await requireUser(request); if ("response" in auth) return { response: auth.response };
-  const { data: business } = await auth.supabase.from("businesses").select("id,slug").eq("user_id", auth.user.id).maybeSingle();
-  if (!business) return { response: error("Complete onboarding before creating a QR design.", 404) };
-  let { data: qr } = await auth.supabase.from("qr_codes").select("tracking_slug").eq("business_id", business.id).eq("active", true).maybeSingle();
-  if (!qr) {
-    const { data } = await auth.supabase.from("qr_codes").insert({ business_id: business.id, tracking_slug: business.slug, active: true }).select("tracking_slug").single();
-    qr = data;
-  }
-  if (!qr) return { response: error("We couldn’t create your QR code.", 502) };
-  return { trackingUrl: trackingUrl(request, qr.tracking_slug), identity: auth.user.id };
-}
-
-export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => null) as { theme?: unknown } | null;
-  const theme = normalizeQrTheme(body?.theme);
-  if (!theme) return error("Describe your restaurant theme in 8 to 600 characters.");
-  if (!process.env.OPENAI_API_KEY) return error("AI QR design is not configured yet. Add OPENAI_API_KEY on the server to enable it.", 503);
-  const target = await productionTrackingUrl(request);
-  if ("response" in target) return target.response;
-  const limiters = await Promise.all([
-    consumeRateLimit(requestRateLimitKey(request, "qr-design", target.identity), 3, 3600),
-    consumeRateLimit(requestRateLimitKey(request, "qr-design-ip"), 10, 3600),
-  ]);
-  for (const limiter of limiters) {
-    if (limiter.unavailable) return rateLimitUnavailableResponse();
-    if (!limiter.allowed) return rateLimitResponse(limiter.retryAfter);
-  }
-  const key = `${theme.toLowerCase()}:${target.trackingUrl}`;
-  const cached = await getCachedJson<QrDesign>(`reviewflow:qr-design:${key}`);
-  if (cached) return NextResponse.json({ design: cached, cached: true });
-  const existing = pending.get(key);
-  if (existing) return NextResponse.json({ design: await existing, cached: false });
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(10_000, Number(process.env.QR_DESIGN_TIMEOUT_MS || 120000)));
-  const work = generateQrDesign({ theme, trackingUrl: target.trackingUrl, apiKey: process.env.OPENAI_API_KEY, model: process.env.QR_DESIGN_IMAGE_MODEL || "gpt-image-2.5-flare", signal: controller.signal });
-  pending.set(key, work);
+export const POST = safeRoute(async (request: NextRequest) => {
+  aiConfiguration("qr");
+  const auth = await requireUser(request); if ("response" in auth) return auth.response;
+  const theme = normalizeQrTheme((await readJson(request)).theme);
+  if (!theme) return error("Describe your theme in 8 to 600 characters.");
+  await enforceLimit(request, "qr-design-user", 3, 3600, auth.user.id);
+  await enforceLimit(request, "qr-design-ip", 10, 3600);
+  const { data: business } = await auth.supabase.from("businesses").select("id").eq("user_id", auth.user.id).maybeSingle();
+  if (!business) return error("Complete onboarding first.", 404);
+  const { data: qr } = await auth.supabase.from("qr_codes").select("tracking_slug").eq("business_id", business.id).eq("active", true).maybeSingle();
+  if (!qr) return error("Create your QR code first.", 409);
+  const target = trackingUrl(request, qr.tracking_slug);
+  const key = aiCacheKey("qr", auth.user.id, [theme.toLowerCase(), target]);
+  const cached = await getCachedJson<StoredArtwork>(key, auth.user.id);
+  if (cached) return json({ design: await presentArtwork(auth.user.id, cached, target), cached: true });
+  const reservation = await reserveAi(key, auth.user.id, "qr");
   try {
-    const design = await work;
-    await setCachedJson(`reviewflow:qr-design:${key}`, design, Math.floor(cacheTtlMs / 1000));
-    return NextResponse.json({ design, cached: false });
-  } catch (cause) {
-    const message = cause instanceof Error ? cause.message : "The artwork service is unavailable.";
-    return error(message, message.includes("blocked") ? 422 : 502);
-  } finally {
-    clearTimeout(timeout);
-    pending.delete(key);
+    const design = await generateQrDesign({ theme, trackingUrl: target, apiKey: reservation.apiKey, model: reservation.model, signal: AbortSignal.timeout(120000) });
+    const stored = await storeArtwork(auth.user.id, design);
+    await setCachedJson(key, auth.user.id, stored, 86400);
+    await finishAi(key, reservation.reservation, "complete");
+    return json({ design: await presentArtwork(auth.user.id, stored, target), cached: false });
+  } catch {
+    await finishAi(key, reservation.reservation, "failed");
+    return error("The artwork service is unavailable. Please try again later.", 502);
   }
-}
+});

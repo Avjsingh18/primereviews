@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
+import { publicRequestLimit } from "@/lib/rate-limit";
+import { isGoogleReviewUrl } from "@/lib/security/google-url";
+import { safeRoute } from "@/lib/security/http";
 
-async function hash(value: string) {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, "0")).join("");
-}
-
-export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+export const GET = safeRoute(async (request: NextRequest, { params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
+  if (!/^[a-z0-9][a-z0-9-]{0,179}$/.test(slug)) return new NextResponse("QR code not found.", { status: 404 });
+  // Quotas apply before any slug lookup, including unknown slugs.
+  await publicRequestLimit(request);
   const supabase = supabaseAdmin();
   const { data: qr } = await supabase.from("qr_codes").select("id,business_id,active").eq("tracking_slug", slug).eq("active", true).maybeSingle();
   if (!qr) return new NextResponse("QR code not found.", { status: 404 });
   const { data: business } = await supabase.from("businesses").select("google_review_url").eq("id", qr.business_id).maybeSingle();
-  if (!business) return new NextResponse("Business not found.", { status: 404 });
-  const limiter = await consumeRateLimit(requestRateLimitKey(request, "qr-scan", slug), 30, 60);
-  if (limiter.unavailable) return rateLimitUnavailableResponse();
-  if (!limiter.allowed) return rateLimitResponse(limiter.retryAfter);
-  const recordLimiter = await consumeRateLimit(requestRateLimitKey(request, "qr-scan-record", slug), 1, 300);
-  if (recordLimiter.unavailable) return rateLimitUnavailableResponse();
-  if (recordLimiter.allowed) {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
-    await supabase.from("qr_scans").insert({ qr_code_id: qr.id, ip_hash: ip ? await hash(ip) : null, user_agent: request.headers.get("user-agent")?.slice(0, 1024) || null });
+  if (!business || !isGoogleReviewUrl(business.google_review_url)) return new NextResponse("Review destination unavailable.", { status: 404 });
+  // Visits are approximate, not unique people or completed reviews. Never store IP/UA.
+  const preview = /bot|crawler|spider|preview|facebookexternalhit|whatsapp|slack|discord|telegram/i.test(request.headers.get("user-agent") || "") || request.headers.has("purpose") || request.headers.has("sec-purpose");
+  if (request.method !== "HEAD" && !preview) {
+    try { await supabase.rpc("security_record_visit", { p_qr: qr.id }); } catch { /* Analytics must not break a valid redirect. */ }
   }
   return NextResponse.redirect(business.google_review_url, { status: 302 });
-}
+});
+export const HEAD = GET;

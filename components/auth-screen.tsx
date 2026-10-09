@@ -11,7 +11,6 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   const [notice, setNotice] = useState("");
   const router = useRouter();
   const signup = mode === "signup";
-
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -34,6 +33,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
         setNotice(`Confirmation email sent to ${email}. Confirm your email to sign in.`);
         return;
       }
+      // Credentials stay in HttpOnly cookies, never in JavaScript storage.
       localStorage.removeItem("reviewflow_token");
       localStorage.removeItem("reviewflow_business");
       localStorage.removeItem("prime_reviews_business");
@@ -54,7 +54,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
       <form onSubmit={submit}>
         {signup && <><label>Your name<div><User /><input name="name" required placeholder="Alex Morgan" /></div></label><label>Business name<div><User /><input name="business" required placeholder="Melbourne Coffee House" /></div></label></>}
         <label>Email address<div><Mail /><input name="email" required type="email" placeholder="you@business.com" /></div></label>
-        <label>Password<div><Lock /><input name="password" required minLength={8} type="password" placeholder="At least 8 characters" /><Eye /></div></label>
+        <label>Password<div><Lock /><input name="password" required minLength={signup ? 12 : 1} maxLength={signup ? 72 : 256} autoComplete={signup ? "new-password" : "current-password"} type="password" placeholder={signup ? "At least 12 characters" : "Your password"} /><Eye /></div></label>
         {!signup && <Link className="forgot" href="#">Forgot password?</Link>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status"><CheckCircle2 aria-hidden="true" />{notice}</p>}

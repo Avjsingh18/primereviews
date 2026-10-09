@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, isGoogleReviewUrl, requireUser, slugify, trackingUrl } from "@/lib/api";
+import { readJson, safeRoute } from "@/lib/security/http";
 
 type Location = { latitude: number; longitude: number };
 type Business = { id: string; name: string; slug: string; google_review_url: string; latitude: number | null; longitude: number | null };
@@ -40,16 +41,16 @@ async function withLocation(supabase: ReturnType<typeof import("@/lib/supabase/s
   return { ...business, latitude: locationError ? null : data?.latitude ?? null, longitude: locationError ? null : data?.longitude ?? null };
 }
 
-export async function GET(request: NextRequest) {
+export const GET = safeRoute(async (request: NextRequest) => {
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
   const { data: business } = await auth.supabase.from("businesses").select(businessFields).eq("user_id", auth.user.id).maybeSingle();
   if (!business) return error("Complete onboarding to create your business.", 404);
   return responseForBusiness(request, auth.supabase, await withLocation(auth.supabase, business as BusinessBase));
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = safeRoute(async (request: NextRequest) => {
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
-  const input = validInput(await request.json().catch(() => null)); if (!input) return error("Enter a valid business name, Google review URL, and location.");
+  const input = validInput(await readJson(request)); if (!input) return error("Enter a valid business name, Google review URL, and location.");
   const { data: existing } = await auth.supabase.from("businesses").select("id").eq("user_id", auth.user.id).maybeSingle();
   if (existing) return error("This account already has a business.", 409);
   const { data: business, error: insertError } = await auth.supabase.from("businesses").insert({
@@ -58,15 +59,15 @@ export async function POST(request: NextRequest) {
   }).select(businessFields).single();
   if (insertError || !business) return error("We couldn’t save your business.");
   return responseForBusiness(request, auth.supabase, await withLocation(auth.supabase, business as BusinessBase));
-}
+});
 
-export async function PUT(request: NextRequest) {
+export const PUT = safeRoute(async (request: NextRequest) => {
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
-  const input = validInput(await request.json().catch(() => null)); if (!input) return error("Enter a valid business name, Google review URL, and location.");
+  const input = validInput(await readJson(request)); if (!input) return error("Enter a valid business name, Google review URL, and location.");
   const { data: business, error: updateError } = await auth.supabase.from("businesses").update({
     name: input.name, google_review_url: input.googleReviewUrl, updated_at: new Date().toISOString(),
     ...(input.location ? { ...input.location, location_updated_at: new Date().toISOString() } : {}),
   }).eq("user_id", auth.user.id).select(businessFields).single();
   if (updateError || !business) return error("We couldn’t update your business.", 404);
   return responseForBusiness(request, auth.supabase, await withLocation(auth.supabase, business as BusinessBase));
-}
+});

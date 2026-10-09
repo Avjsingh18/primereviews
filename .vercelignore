@@ -1,0 +1,7 @@
+.env*
+.local/
+backend/
+demo-assets/
+reviewflow-demo/
+supabase/.temp/
+*.tsbuildinfo

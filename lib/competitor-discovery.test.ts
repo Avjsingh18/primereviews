@@ -27,6 +27,10 @@ test("provider removes duplicates, unrelated categories, closed listings, and ou
     assert.equal(result.businesses.length, 2);
     assert.equal(result.businesses[0].name, "Alpha Cafe");
     assert.equal(result.businesses[0].rating, 4.8);
+    assert.equal(result.businesses[0].verificationStatus, "needs_verification");
+    assert.equal(result.businesses[0].distanceVerified, false);
+    assert.equal(result.sourceStatus, "partially_verified");
+    assert.equal(result.isComplete, false);
     assert.equal(result.businesses[1].name, "Unverified Cafe");
     assert.equal(result.businesses[1].rating, null);
     assert.equal(result.businesses[1].distanceVerified, false);
