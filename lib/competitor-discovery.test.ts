@@ -38,9 +38,9 @@ test("Google Places Nearby Search uses the selected radius and filters invalid l
   } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
 });
 
-test("combined category searches use Nearby types and radius-restricted Text Search keywords", async () => {
+test("combined category searches use Nearby types and location-biased Text Search keywords", async () => {
   const originalFetch = global.fetch; const originalKey = process.env.GOOGLE_MAPS_API_KEY; process.env.GOOGLE_MAPS_API_KEY = "fixture-key";
-  type PlacesRequestBody = { includedTypes?: string[]; rankPreference?: string; textQuery?: string; locationRestriction: { circle: { radius: number } } };
+  type PlacesRequestBody = { includedTypes?: string[]; rankPreference?: string; textQuery?: string; locationRestriction?: { circle: { radius: number } }; locationBias?: { circle: { radius: number } } };
   const requests: Array<{ url: string; body: PlacesRequestBody }> = [];
   global.fetch = async (input, init) => {
     requests.push({ url: String(input), body: JSON.parse(String(init?.body)) as PlacesRequestBody });
@@ -51,9 +51,9 @@ test("combined category searches use Nearby types and radius-restricted Text Sea
     assert.equal(requests.length, 6);
     assert.deepEqual(requests[0].body.includedTypes, ["hostel"]);
     assert.equal(requests[0].body.rankPreference, "POPULARITY");
-    assert.equal(requests[0].body.locationRestriction.circle.radius, 3000);
+    assert.equal(requests[0].body.locationRestriction?.circle.radius, 3000);
     assert.deepEqual(requests.slice(1).map(({ body }) => body.textQuery), ["PG", "paying guest", "student dormitory", "hostel", "lodge"]);
-    assert.ok(requests.slice(1).every(({ url, body }) => url.endsWith("/places:searchText") && body.locationRestriction.circle.radius === 3000));
+    assert.ok(requests.slice(1).every(({ url, body }) => url.endsWith("/places:searchText") && body.locationBias?.circle.radius === 3000));
   } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
 });
 
