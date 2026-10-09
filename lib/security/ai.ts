@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { HttpError } from "./http";
 
 type Feature = "qr" | "competitors";
-const approvedModels = { qr: "gpt-image-2.5-flare", competitors: "gpt-5.5" };
+const approvedModels = { qr: "gpt-image-2", competitors: "gpt-5.5" };
 function cents(name: string) {
   const value = Number(process.env[name]);
   if (!Number.isSafeInteger(value) || value <= 0 || value > 1000000) throw new HttpError(503, "AI spending protection is not configured.");

@@ -42,7 +42,7 @@ export async function generateQrDesign({
   theme,
   trackingUrl,
   apiKey,
-  model = "gpt-image-2.5-flare",
+  model = "gpt-image-2",
   signal,
 }: {
   theme: string;
