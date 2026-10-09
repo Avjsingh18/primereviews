@@ -83,7 +83,11 @@ export class GooglePlacesProvider {
       searches.push(requestPlaces("/places:searchNearby", nearbyFields, { includedTypes: category.nearbyTypes, maxResultCount: input.limit, rankPreference: "POPULARITY", locationRestriction }));
     }
     for (const textQuery of category.textQueries) {
-      searches.push(requestPlaces("/places:searchText", textFields, { textQuery, pageSize: input.limit, locationRestriction }));
+      // Text Search (New) accepts a circular location as `locationBias`.
+      // `locationRestriction` only supports rectangular viewports, so sending
+      // the Nearby Search circle there causes Google to reject categories
+      // that use text search (for example Plant nurseries and PGs).
+      searches.push(requestPlaces("/places:searchText", textFields, { textQuery, pageSize: input.limit, locationBias: locationRestriction }));
     }
     const places = (await Promise.all(searches)).flat();
     const retrievedAt = new Date().toISOString(); const seen = new Set<string>();
