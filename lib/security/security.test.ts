@@ -128,7 +128,7 @@ test("opaque session replay fails after logout; provider tokens never reach cook
 });
 test("budget exhaustion prevents any provider call", async () => {
   const saved = global.fetch; let calls = 0;
-  for (const name of ["AI_QR_MAX_CALL_CENTS", "AI_SEARCH_MAX_CALL_CENTS", "AI_GLOBAL_DAILY_CENTS", "AI_GLOBAL_MONTHLY_CENTS", "AI_USER_DAILY_CENTS", "AI_USER_MONTHLY_CENTS"]) process.env[name] = "10";
+  for (const name of ["AI_QR_MAX_CALL_CENTS", "AI_GLOBAL_DAILY_CENTS", "AI_GLOBAL_MONTHLY_CENTS", "AI_USER_DAILY_CENTS", "AI_USER_MONTHLY_CENTS"]) process.env[name] = "10";
   process.env.AI_ENABLED = "true"; process.env.AI_PRICING_VERIFIED = "true";
   global.fetch = async (input) => {
     assert.ok(String(input).includes("security_reserve_ai")); return Response.json({ allowed: false });

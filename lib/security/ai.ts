@@ -2,8 +2,8 @@ import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { HttpError } from "./http";
 
-type Feature = "qr" | "competitors";
-const approvedModels = { qr: "gpt-image-2", competitors: "gpt-5.5" };
+type Feature = "qr";
+const approvedModels = { qr: "gpt-image-2" };
 function cents(name: string) {
   const value = Number(process.env[name]);
   if (!Number.isSafeInteger(value) || value <= 0 || value > 1000000) throw new HttpError(503, "AI spending protection is not configured.");
@@ -12,9 +12,9 @@ function cents(name: string) {
 export function aiConfiguration(feature: Feature) {
   // Local tests must never reach hosted storage, auth, or a paid provider.
   if (process.env.REVIEWFLOW_LOCAL_BACKEND === "true" || process.env.AI_ENABLED !== "true" || process.env.AI_PRICING_VERIFIED !== "true" || !process.env.OPENAI_API_KEY) throw new HttpError(503, "AI features are currently unavailable.");
-  const model = process.env[feature === "qr" ? "QR_DESIGN_IMAGE_MODEL" : "COMPETITOR_SEARCH_MODEL"] || approvedModels[feature];
+  const model = process.env.QR_DESIGN_IMAGE_MODEL || approvedModels[feature];
   if (model !== approvedModels[feature]) throw new HttpError(503, "The AI model requires a reviewed spending configuration.");
-  return { apiKey: process.env.OPENAI_API_KEY, model, cost: cents(feature === "qr" ? "AI_QR_MAX_CALL_CENTS" : "AI_SEARCH_MAX_CALL_CENTS"), globalDay: cents("AI_GLOBAL_DAILY_CENTS"), globalMonth: cents("AI_GLOBAL_MONTHLY_CENTS"), userDay: cents("AI_USER_DAILY_CENTS"), userMonth: cents("AI_USER_MONTHLY_CENTS") };
+  return { apiKey: process.env.OPENAI_API_KEY, model, cost: cents("AI_QR_MAX_CALL_CENTS"), globalDay: cents("AI_GLOBAL_DAILY_CENTS"), globalMonth: cents("AI_GLOBAL_MONTHLY_CENTS"), userDay: cents("AI_USER_DAILY_CENTS"), userMonth: cents("AI_USER_MONTHLY_CENTS") };
 }
 export function aiCacheKey(feature: Feature, owner: string, parameters: unknown) {
   return `${feature}:${createHash("sha256").update(JSON.stringify([owner, parameters])).digest("hex")}`;

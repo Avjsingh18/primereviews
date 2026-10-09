@@ -11,7 +11,7 @@ const secrets=["SESSION_ENCRYPTION_KEY","DATABASE_API_SECRET","RATE_LIMIT_SECRET
 if(new Set(secrets).size!==secrets.length) failures.push("security keys must not be reused");
 if(process.env.AI_ENABLED === "true") {
   if(!process.env.OPENAI_API_KEY || process.env.AI_PRICING_VERIFIED!=="true") failures.push("AI key/pricing review missing");
-  for(const name of ["AI_QR_MAX_CALL_CENTS","AI_SEARCH_MAX_CALL_CENTS","AI_GLOBAL_DAILY_CENTS","AI_GLOBAL_MONTHLY_CENTS","AI_USER_DAILY_CENTS","AI_USER_MONTHLY_CENTS"]) {
+  for(const name of ["AI_QR_MAX_CALL_CENTS","AI_GLOBAL_DAILY_CENTS","AI_GLOBAL_MONTHLY_CENTS","AI_USER_DAILY_CENTS","AI_USER_MONTHLY_CENTS"]) {
     const value=Number(process.env[name]); if(!Number.isSafeInteger(value) || value<1 || value>1000000) failures.push(`${name} invalid`);
   }
 }

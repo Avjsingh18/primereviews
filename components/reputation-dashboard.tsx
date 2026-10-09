@@ -38,14 +38,14 @@ export default function ReputationDashboard() {
   const reviewData = reviews.map(({ date, value }) => ({ label: date.slice(5), reviews: value }));
   const scanData = scans.map(({ date, value }) => ({ label: date.slice(5), scans: value }));
   const metrics: Metric[] = [
-    { title: "Current rating", value: overview?.rating == null ? "—" : overview.rating.toFixed(1), note: overview?.rating == null ? "No rating recorded" : "Manual snapshot", icon: Star },
-    { title: "Total reviews", value: overview?.totalReviews == null ? "—" : overview.totalReviews.toLocaleString(), note: overview?.totalReviews == null ? "No reviews recorded" : "Manual snapshot", icon: TrendingUp },
+    { title: "Current rating", value: overview?.rating == null ? "—" : overview.rating.toFixed(1), note: overview?.rating == null ? "No Google data found" : "Google Places · 24h cache", icon: Star },
+    { title: "Total reviews", value: overview?.totalReviews == null ? "—" : overview.totalReviews.toLocaleString(), note: overview?.totalReviews == null ? "No Google data found" : "Google Places · 24h cache", icon: TrendingUp },
     { title: "QR visits", value: String(overview?.qrScans ?? 0), note: overview?.qrScans ? "Recorded redirects" : "No visits yet", icon: QrCode },
     { title: "Rating change", value: overview?.ratingChange == null ? "—" : `${overview.ratingChange >= 0 ? "+" : ""}${overview.ratingChange.toFixed(1)}`, note: overview?.ratingChange == null ? "No comparison yet" : "Since first snapshot", icon: ArrowUpRight },
   ];
 
   return <ReputationShell title={business ? `Good to see ${business}.` : "Your review overview"} description="A clear view of the review snapshots and QR scans saved for this business." actions={<Link className={styles.primary} href="/qr-code"><QrCode />Manage QR code</Link>}>
-    <div className={styles.dashboardToolbar}><span><CalendarDays />Last 30 days</span><p>Google review data is manually recorded until Google sync is connected.</p></div>
+    <div className={styles.dashboardToolbar}><span><CalendarDays />Last 30 days</span><p>Current Google rating and review count refresh automatically after 24 hours.</p></div>
     <section className={styles.dashboardMetrics}>{metrics.map((metric) => <MetricCard key={metric.title} {...metric} />)}</section>
     <section className={styles.dashboardCharts}>
       <article className={styles.chart}><h2>Review growth</h2><p>Total recorded Google reviews over time.</p><ResponsiveContainer width="100%" height={238}><AreaChart data={reviewData}><defs><linearGradient id="review-growth" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#6659ea" stopOpacity=".24" /><stop offset="1" stopColor="#6659ea" stopOpacity="0" /></linearGradient></defs><CartesianGrid vertical={false} stroke="#edf0f6" /><XAxis dataKey="label" axisLine={false} tickLine={false} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip /><Area type="monotone" dataKey="reviews" stroke="#6659ea" strokeWidth={2.5} fill="url(#review-growth)" /></AreaChart></ResponsiveContainer></article>
