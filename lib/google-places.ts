@@ -63,6 +63,17 @@ function matchScore(expected: string, actual: string) {
   return a.size ? overlap / a.size : 0;
 }
 
+function likelyPlaceTypes(name: string) {
+  const words = nameKey(name);
+  if (/\bnursery\b/.test(words)) return ["garden_center"];
+  if (/\b(cafe|coffee|tea)\b/.test(words)) return ["cafe", "coffee_shop"];
+  if (/\b(salon|barber|beauty)\b/.test(words)) return ["beauty_salon", "hair_salon"];
+  if (/\b(hotel|resort|inn)\b/.test(words)) return ["hotel"];
+  if (/\b(clinic|dental|doctor)\b/.test(words)) return ["medical_clinic"];
+  if (/\b(gym|fitness|yoga)\b/.test(words)) return ["gym"];
+  return [];
+}
+
 export class GooglePlacesProvider {
   async searchNearbyBusinesses(input: NearbySearchRequest): Promise<NearbySearchResponse> {
     const category = categories[input.category];
@@ -88,15 +99,22 @@ export class GooglePlacesProvider {
   }
 
   async findBusinessMetrics(business: { name: string; latitude: number; longitude: number }): Promise<GoogleBusinessMetrics> {
-    const places = await requestPlaces("/places:searchText", textFields, { textQuery: business.name, pageSize: 5, rankPreference: "DISTANCE", locationBias: { circle: { center: { latitude: business.latitude, longitude: business.longitude }, radius: 5000 } } });
-    const ranked = places.flatMap((place) => {
+    const rankCandidates = (places: z.infer<typeof placeSchema>[]) => places.flatMap((place) => {
       const name = place.displayName?.text;
       if (!name || !place.location || place.rating == null || place.userRatingCount == null) return [];
       const distanceKm = haversineDistanceKm(business.latitude, business.longitude, place.location.latitude, place.location.longitude);
       return [{ place, name, distanceKm, score: matchScore(business.name, name) }];
     // Do not accept a merely similar listing. An incorrect rating is worse than no rating.
     }).filter(({ distanceKm, score }) => distanceKm <= 5 && score >= 0.9).sort((a, b) => b.score - a.score || a.distanceKm - b.distanceKm);
-    const winner = ranked[0];
+    const textPlaces = await requestPlaces("/places:searchText", textFields, { textQuery: business.name, pageSize: 5, rankPreference: "DISTANCE", locationBias: { circle: { center: { latitude: business.latitude, longitude: business.longitude }, radius: 5000 } } });
+    let winner = rankCandidates(textPlaces)[0];
+    // Text Search can omit a small local listing. For recognisable business categories,
+    // retry a nearby query around the saved pin and still require the same strict match.
+    const types = likelyPlaceTypes(business.name);
+    if (!winner && types.length) {
+      const nearby = await requestPlaces("/places:searchNearby", nearbyFields, { includedTypes: types, maxResultCount: 20, rankPreference: "DISTANCE", locationRestriction: { circle: { center: { latitude: business.latitude, longitude: business.longitude }, radius: 5000 } } });
+      winner = rankCandidates(nearby)[0];
+    }
     if (!winner) throw new GooglePlacesError(404, "We couldn’t match this business on Google Maps. Check its name and saved location.");
     return { rating: winner.place.rating!, reviewCount: winner.place.userRatingCount!, googleMapsUrl: winner.place.googleMapsUri ?? null, placeId: winner.place.id, placeName: winner.name, retrievedAt: new Date().toISOString() };
   }

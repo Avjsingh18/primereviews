@@ -71,6 +71,20 @@ test("Google Places finds the current business by matching its name and location
   } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
 });
 
+test("Google Places retries a known category near the saved pin when text search omits the listing", async () => {
+  const originalFetch = global.fetch; const originalKey = process.env.GOOGLE_MAPS_API_KEY; process.env.GOOGLE_MAPS_API_KEY = "fixture-key";
+  const responses = [
+    { places: [] },
+    { places: [{ id:"right", displayName:{ text:"R Serto Nursery" }, location:{ latitude:28.6213, longitude:77.4298 }, rating:4.9, userRatingCount:7 }] },
+  ];
+  global.fetch = async () => new Response(JSON.stringify(responses.shift()), { status:200 });
+  try {
+    const result = await new GooglePlacesProvider().findBusinessMetrics({ name:"R.SERTO NURSERY", latitude:28.62127, longitude:77.42985 });
+    assert.equal(result.rating, 4.9);
+    assert.equal(result.reviewCount, 7);
+  } finally { global.fetch = originalFetch; if (originalKey == null) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = originalKey; }
+});
+
 test("Google Places refuses a loosely matched business instead of showing another listing's rating", async () => {
   const originalFetch = global.fetch; const originalKey = process.env.GOOGLE_MAPS_API_KEY; process.env.GOOGLE_MAPS_API_KEY = "fixture-key";
   global.fetch = async () => new Response(JSON.stringify({ places: [
