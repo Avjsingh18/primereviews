@@ -2,6 +2,7 @@ import "./globals.css";
 import "./premium.css";
 import "./help.css";
 import "./settings.css";
+import "./futuristic.css";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 

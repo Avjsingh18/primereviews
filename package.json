@@ -15,7 +15,8 @@
     "prebuild": "node scripts/check-release-config.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "dev:preview": "node scripts/ui-mock-server.mjs & UI_MOCK_API=true next dev -p 3100"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.57.0",
