@@ -54,7 +54,7 @@ export function safeRoute<Args extends unknown[]>(handler: (request: NextRequest
     try {
       assertSameOrigin(request);
       const response = await handler(request, ...args);
-      response.headers.set("Cache-Control", "private, no-store");
+      if (!response.headers.has("Cache-Control")) response.headers.set("Cache-Control", "private, no-store");
       response.headers.set("Vary", "Cookie");
       return response;
     } catch (cause) {

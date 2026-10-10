@@ -6,9 +6,11 @@ import { enforceLimit } from "@/lib/rate-limit";
 import { aiCacheKey, aiConfiguration, finishAi, reserveAi } from "@/lib/security/ai";
 import { presentArtwork, storeArtwork, StoredArtwork } from "@/lib/security/artwork";
 import { json, readJson, safeRoute } from "@/lib/security/http";
+import { qrLegacyArtworkEnabled } from "@/lib/qr-studio";
 export const runtime = "nodejs";
 
 export const POST = safeRoute(async (request: NextRequest) => {
+  if (!qrLegacyArtworkEnabled()) return error("Legacy AI QR artwork is disabled.", 404);
   aiConfiguration("qr");
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
   const theme = normalizeQrTheme((await readJson(request)).theme);

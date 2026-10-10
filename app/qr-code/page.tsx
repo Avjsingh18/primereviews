@@ -1,2 +1,4 @@
 import QRPage from "../../components/qr-page";
-export default function QRCodePage() { return <QRPage />; }
+import QrStudioPage from "../../components/qr-studio-page";
+import { qrStudioEnabled } from "@/lib/qr-studio";
+export default function QRCodePage() { return qrStudioEnabled() ? <QrStudioPage /> : <QRPage />; }
