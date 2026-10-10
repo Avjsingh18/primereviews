@@ -28,7 +28,7 @@ const features = [
   { Icon: LineChart, title: "Scan analytics", text: "Daily scan counts over 7, 30, 90 days or your own dates." },
   { Icon: Star, title: "Rating tracking", text: "Current Google rating and review count, with the change over time." },
   { Icon: MapPin, title: "Local rankings", text: "Compare yourself with nearby businesses of your own type within 1, 3 or 5 km." },
-  { Icon: ShieldCheck, title: "Privacy first", text: "Scans are counted per day. We do not store customers' IP addresses." },
+  { Icon: ShieldCheck, title: "Privacy first", text: "Scans are counted per day, without storing who scanned." },
   { Icon: Store, title: "Several locations", text: "Manage more than one business from one account.", soon: true, wide: true },
   { Icon: BarChart3, title: "Automated reports", text: "A recurring summary of your activity.", soon: true, wide: true },
 ] as const;
@@ -39,7 +39,7 @@ const faqs: Array<[string, ReactNode]> = [
   ["Is the QR card safe to print?", "Yes. Every card is checked to make sure it scans before you can download it."],
   ["How do the local rankings work?", "We use Google Places to list nearby businesses of your own type within 1, 3 or 5 km, with their Google ratings and review counts. It will not match a Google search exactly, because Google search uses its own relevance rules."],
   ["Which businesses is it for?", "Any local business that customers can review on Google. That includes restaurants, clubs, gyms, salons, cafés, hotels, clinics, coaching centres, plant nurseries, day care centres, preschools, PGs and more. Pick the closest type, or choose Other. Local rankings are not available for Other."],
-  ["What happens to my customers' data?", "We count scans per day and do not keep customers' IP addresses. Your photo is stripped of metadata and stored compressed, and you can remove it at any time."],
+  ["What happens to my customers' data?", "We count scans per day and do not store who scanned alongside those counts. Your photo is stripped of metadata and stored compressed, and you can remove it at any time."],
   ["Do I need access to my Google Business Profile?", "No. You only need your public Google review link. A Business Profile connection is on our roadmap, not required today."],
   ["What does it cost?", <>It is free while we are in early access. See the <a href="#pricing">Pricing</a> section for details.</>],
   ["Where can I read your terms and privacy policy?", <>Right here: <Link href="/terms">Terms of Service</Link>, <Link href="/privacy">Privacy Policy</Link>, <Link href="/cookies">Cookie Policy</Link> and <Link href="/acceptable-use">Acceptable Use &amp; Reviews Policy</Link>.</>],

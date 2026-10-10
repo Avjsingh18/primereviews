@@ -15,6 +15,11 @@ if(process.env.AI_ENABLED === "true") {
     const value=Number(process.env[name]); if(!Number.isSafeInteger(value) || value<1 || value>1000000) failures.push(`${name} invalid`);
   }
 }
+import { readFileSync } from "node:fs";
+{
+  const source = readFileSync("lib/legal-config.ts", "utf8");
+  const open = [...source.matchAll(/^\s*(operator|address|contactEmail|grievanceOfficer|grievanceEmail|courtsCity|euUkRepresentative):\s*"([^"]*)"/gm)].filter((match) => match[1] !== "euUkRepresentative" ? /^\[|^$/.test(match[2]) : match[2].startsWith("[")).map((match) => match[1]);
+  if (open.length) failures.push(`legal details still missing in lib/legal-config.ts: ${open.join(", ")}`);
+}
 if(failures.length) { console.error("Production release blocked:\n"+failures.join("\n")); process.exit(1); }
-import("node:fs").then(({ readFileSync }) => { const open = (readFileSync("lib/legal-config.ts", "utf8").match(/"\[[^"]+\]"/g) || []).length; if (open) console.warn(`WARNING: ${open} legal detail(s) in lib/legal-config.ts are still [placeholders]. Fill them in and have a lawyer review the legal pages before relying on them.`); });
 console.log("Production environment shape checks passed. This does not verify hosted migration, WAF or provider billing settings; complete the release checklist.");

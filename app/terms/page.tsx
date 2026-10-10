@@ -63,9 +63,12 @@ export default function TermsPage() {
     <p>We may update these Terms. We will post the new version here with a new effective date and, for material changes, notify you by email or in the dashboard. If you keep using the Service after the change takes effect you accept the new Terms. If you do not agree, stop using the Service and close your account.</p>
 
     <h2>18. Governing law and disputes</h2>
-    <p>These Terms are governed by the laws of India. Please contact us first so we can try to resolve any dispute informally. Subject to any mandatory rights you have as a consumer, the courts at {legal.courtsCity}, India have exclusive jurisdiction over disputes relating to these Terms or the Service.</p>
+    <p>These Terms are governed by the laws of India. Please contact us first so we can try to resolve any dispute informally. Subject to any mandatory rights you have under the law of the country where you live, the courts at {legal.courtsCity}, India have exclusive jurisdiction over disputes relating to these Terms or the Service.</p>
 
-    <h2>19. General</h2>
+    <h2>19. Use outside India, business use and compliance</h2>
+    <p>The Service is intended for businesses, not for personal or household use by consumers. {legal.productName} can be accessed from many countries, but you are responsible for complying with the laws that apply to you where you use it, including laws about advertising, reviews, consumer protection, privacy and taxes. You may not use the Service if you are barred from doing so by applicable export-control or sanctions laws, or if you are located in, or ordinarily resident in, a country or region subject to comprehensive sanctions. Any taxes, duties or levies that apply to paid plans, such as GST or VAT, are your responsibility unless we state otherwise.</p>
+
+    <h2>20. General</h2>
     <ul>
       <li><b>Entire agreement:</b> these Terms and the policies they refer to are the whole agreement about the Service.</li>
       <li><b>Severability:</b> if a provision is unenforceable, the rest remains in effect.</li>
@@ -75,7 +78,7 @@ export default function TermsPage() {
       <li><b>Events beyond our control:</b> we are not liable for delays or failures caused by events outside our reasonable control, including outages of third-party services.</li>
     </ul>
 
-    <h2>20. Contact</h2>
+    <h2>21. Contact</h2>
     <p>{legal.operator}, {legal.address}. Email: {legal.contactEmail}.</p>
   </LegalPage>;
 }

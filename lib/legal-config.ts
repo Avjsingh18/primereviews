@@ -8,6 +8,9 @@ export const legal = {
   grievanceOfficer: "[Name and designation of Grievance Officer]",
   grievanceEmail: "[grievance email address]",
   courtsCity: "[City]",
+  // Shown in the Privacy Policy for EEA/UK users. If you have no office in the EU or UK and serve people there, the GDPR
+  // usually requires an EU (and UK) representative: put their name and address here, or replace the whole line with "" if not needed.
+  euUkRepresentative: "[Name and address of your EU/UK representative, or leave blank if not required]",
   effectiveDate: "10 October 2026",
   // Stored with every new account so you can show which version of the terms was accepted.
   termsVersion: "2026-10-10",
