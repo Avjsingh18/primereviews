@@ -8,6 +8,9 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 function assertFormOrigin(request: NextRequest) {
   if (request.headers.get("origin") !== siteOrigin(request) || request.headers.get("sec-fetch-site") === "cross-site") throw new HttpError(403, "This request is not allowed.");
 }
+function isUploadFile(value: FormDataEntryValue | null): value is File {
+  return Boolean(value && typeof value !== "string" && typeof (value as File).arrayBuffer === "function" && typeof (value as File).size === "number" && typeof (value as File).type === "string");
+}
 async function boundedFormData(request: NextRequest) {
   const reader = request.body?.getReader();
   if (!reader) throw new HttpError(400, "Upload a photo.");
@@ -37,11 +40,11 @@ export const POST = async (request: NextRequest) => {
     const form = await boundedFormData(request);
     if (form.get("consent") !== "true") throw new HttpError(400, "Confirm that you have the right to use this photo.");
     const file = form.get("photo");
-    if (!(file instanceof File) || !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > QR_STUDIO_MAX_UPLOAD_BYTES) throw new HttpError(400, "Upload a JPG, PNG or WebP photo up to 5 MB.");
+    if (!isUploadFile(file) || !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > QR_STUDIO_MAX_UPLOAD_BYTES) throw new HttpError(400, "Upload a JPG, PNG or WebP photo up to 5 MB.");
     const processed = await optimisePhoto(Buffer.from(await file.arrayBuffer()));
     const record = { business_id: loaded.businessId, mime: "image/webp", data: `\\x${processed.bytes.toString("hex")}`, bytes: processed.bytes.length, width: processed.width, height: processed.height, sha256: processed.sha256, palette: processed.palette, updated_at: new Date().toISOString() };
     const { error: storeError } = await supabaseAdmin().from("business_photos").upsert(record, { onConflict: "business_id" });
-    if (storeError) throw storeError;
+    if (storeError) throw new HttpError(503, "The photo could not be saved. Please try again.");
     return json({ bytes: processed.bytes.length, palette: processed.palette });
   } catch (cause) { return failure(cause); }
 };

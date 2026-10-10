@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, trackingUrl } from "@/lib/api";
-import { asCategory, renderStudioCard, verifyQrImage } from "@/lib/qr-studio";
+import { asCategory, normaliseRenderHash, renderStudioCard, verifyQrImage } from "@/lib/qr-studio";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { safeRoute } from "@/lib/security/http";
 
@@ -10,8 +10,9 @@ function readBytea(value: unknown) { return typeof value === "string" && value.s
 
 export const GET = safeRoute(async (request: NextRequest, context: { params: Promise<{ hash: string }> }) => {
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
-  const { hash } = await context.params;
-  if (!/^[a-f0-9]{64}$/i.test(hash)) return new NextResponse("Not found", { status: 404 });
+  const { hash: routeHash } = await context.params;
+  const hash = normaliseRenderHash(routeHash);
+  if (!hash) return new NextResponse("Not found", { status: 404 });
   const { data: business } = await auth.supabase.from("businesses").select("id,name").eq("user_id", auth.user.id).maybeSingle();
   if (!business) return new NextResponse("Not found", { status: 404 });
   const { data: design } = await supabaseAdmin().from("qr_studio_designs").select("*").eq("render_hash", hash).eq("business_id", business.id).eq("is_active", true).maybeSingle();

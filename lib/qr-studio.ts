@@ -62,6 +62,10 @@ export function validateCustomTagline(value: unknown) {
 }
 export function configHash(value: unknown) { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 export function escapeXml(value: string) { return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character] ?? character); }
+export function normaliseRenderHash(value: string) {
+  const hash = value.endsWith(".png") ? value.slice(0, -4) : value;
+  return /^[a-f0-9]{64}$/i.test(hash) ? hash : null;
+}
 
 function splitText(value: string, max = 28) {
   if (value.length <= max) return [value];
@@ -118,8 +122,10 @@ export async function optimisePhoto(file: Buffer) {
   let output = await source.resize(720, 960, { fit: "cover" }).toColourspace("srgb").webp({ quality: 65 }).toBuffer();
   for (let quality = 60; output.length > 45 * 1024 && quality >= 30; quality -= 5) output = await sharp(output).webp({ quality }).toBuffer();
   if (output.length > 80 * 1024) throw new Error("This photo cannot be optimised below 80 KB. Please choose a simpler photo.");
-  const { data, info } = await sharp(output).resize(1, 1).raw().toBuffer({ resolveWithObject: true });
+  const optimised = await sharp(output).metadata();
+  if (optimised.width !== 720 || optimised.height !== 960) throw new Error("The photo could not be processed.");
+  const { data } = await sharp(output).resize(1, 1).raw().toBuffer({ resolveWithObject: true });
   const [red, green, blue] = data; const dark = `#${[red, green, blue].map((part) => Math.max(0, Math.round(part * .25)).toString(16).padStart(2, "0")).join("")}`;
   const accent = `#${[red, green, blue].map((part) => part.toString(16).padStart(2, "0")).join("")}`;
-  return { bytes: output, width: info.width, height: info.height, sha256: crypto.createHash("sha256").update(output).digest("hex"), palette: { dark, accent, light: "#FCFCF8" } };
+  return { bytes: output, width: optimised.width, height: optimised.height, sha256: crypto.createHash("sha256").update(output).digest("hex"), palette: { dark, accent, light: "#FCFCF8" } };
 }
