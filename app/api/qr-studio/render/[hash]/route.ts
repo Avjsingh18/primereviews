@@ -16,13 +16,17 @@ export const GET = safeRoute(async (request: NextRequest, context: { params: Pro
   if (!hash) return new NextResponse("Not found", { status: 404 });
   const { data: business } = await auth.supabase.from("businesses").select("id,name").eq("user_id", auth.user.id).maybeSingle();
   if (!business) return new NextResponse("Not found", { status: 404 });
-  const { data: design } = await supabaseAdmin().from("qr_studio_designs").select("*").eq("render_hash", hash).eq("business_id", business.id).eq("is_active", true).maybeSingle();
-  if (!design) return new NextResponse("Not found", { status: 404 });
   let image = cache.get(hash);
+  const [designResult, qrResult, photoResult] = await Promise.all([
+    supabaseAdmin().from("qr_studio_designs").select("*").eq("render_hash", hash).eq("business_id", business.id).eq("is_active", true).maybeSingle(),
+    image ? Promise.resolve(null) : auth.supabase.from("qr_codes").select("tracking_slug").eq("business_id", business.id).eq("active", true).maybeSingle(),
+    image ? Promise.resolve(null) : supabaseAdmin().from("business_photos").select("data,palette,sha256").eq("business_id", business.id).maybeSingle(),
+  ]);
+  const design = designResult.data;
+  if (!design) return new NextResponse("Not found", { status: 404 });
   if (!image) {
-    const { data: qr } = await auth.supabase.from("qr_codes").select("tracking_slug").eq("business_id", business.id).eq("active", true).maybeSingle();
-    if (!qr) return new NextResponse("Not found", { status: 404 });
-    const { data: photo } = await supabaseAdmin().from("business_photos").select("data,palette,sha256").eq("business_id", business.id).maybeSingle();
+    const qr = qrResult?.data; if (!qr) return new NextResponse("Not found", { status: 404 });
+    const photo = photoResult?.data;
     const output = await renderStudioCard({ businessName: business.name, trackingUrl: trackingUrl(request, qr.tracking_slug), category: asCategory(design.category_slug), variantIndex: design.variant_index, tagline: design.tagline_source === "custom" ? design.tagline_custom : design.tagline_id, bwMode: design.bw_mode, photo: readBytea(photo?.data) || undefined, photoPalette: photo?.palette || null });
     await verifyQrImage(output.image, trackingUrl(request, qr.tracking_slug));
     cache.set(hash, output.image); image = output.image;

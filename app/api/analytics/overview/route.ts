@@ -11,11 +11,13 @@ export const GET = safeRoute(async (request: NextRequest) => {
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
   const { start, end } = dateWindow(request);
   const { data: business } = await auth.supabase.from("businesses").select("id,name,google_review_url,latitude,longitude").eq("user_id", auth.user.id).maybeSingle(); if (!business) return error("Business not found.", 404);
-  const { data: snapshots, error: snapshotError } = await auth.supabase.from("review_snapshots").select("rating,total_reviews,snapshot_date").eq("business_id", business.id).lte("snapshot_date", end).order("snapshot_date", { ascending: false }).limit(367);
+  const [{ data: snapshots, error: snapshotError }, { data: qr }] = await Promise.all([
+    auth.supabase.from("review_snapshots").select("rating,total_reviews,snapshot_date").eq("business_id", business.id).lte("snapshot_date", end).order("snapshot_date", { ascending: false }).limit(367),
+    auth.supabase.from("qr_codes").select("id").eq("business_id", business.id).eq("active", true).maybeSingle(),
+  ]);
   if (snapshotError) throw new Error("Analytics unavailable");
   const beforeStart = (snapshots || []).find((snapshot) => snapshot.snapshot_date <= start) ?? null;
   const latestSnapshot = snapshots?.[0] ?? null;
-  const { data: qr } = await auth.supabase.from("qr_codes").select("id").eq("business_id", business.id).eq("active", true).maybeSingle();
   const scanRows = qr ? await auth.supabase.from("qr_visit_totals").select("visit_date,visits").eq("qr_code_id", qr.id).gte("visit_date", start).lte("visit_date", end).order("visit_date").limit(366) : { data: [], error: null };
   if (scanRows.error) throw new Error("Analytics unavailable");
   const count = (scanRows.data || []).reduce((sum, row) => sum + Number(row.visits), 0);

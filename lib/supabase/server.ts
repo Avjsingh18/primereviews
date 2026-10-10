@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -8,17 +8,22 @@ function assertCloudMode() {
   if (process.env.REVIEWFLOW_LOCAL_BACKEND === "true") throw new Error("Cloud access is disabled in local mode.");
 }
 
+let adminClient: SupabaseClient | undefined;
+
+// The service-role client only runs table, RPC and admin calls, which hold no per-user session state, so it is reused.
 export function supabaseAdmin() {
   assertCloudMode();
   if (!url || !serviceRoleKey) {
     throw new Error("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
   }
-  return createClient(url, serviceRoleKey, { global: { fetch: boundedFetch }, auth: { autoRefreshToken: false, persistSession: false } });
+  adminClient ??= createClient(url, serviceRoleKey, { global: { fetch: boundedFetch }, auth: { autoRefreshToken: false, persistSession: false } });
+  return adminClient;
 }
 
 export function supabasePublic() {
   assertCloudMode();
   if (!url) throw new Error("Supabase is not configured.");
+  // Never shared: sign-in and refresh calls keep session state on the client that made them.
   return createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "", { global: { fetch: boundedFetch }, auth: { autoRefreshToken: false, persistSession: false } });
 }
 

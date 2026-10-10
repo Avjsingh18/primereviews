@@ -45,6 +45,5 @@ export async function enforceLimit(request: NextRequest, scope: string, limit: n
   if (!result.allowed) throw new HttpError(429, "Too many requests. Please try again later.");
 }
 export async function publicRequestLimit(request: NextRequest) {
-  await enforceLimit(request, "public-api-global", 1500, 60, "all");
-  await enforceLimit(request, "public-api-ip", 120, 60);
+  await Promise.all([enforceLimit(request, "public-api-global", 1500, 60, "all"), enforceLimit(request, "public-api-ip", 120, 60)]);
 }

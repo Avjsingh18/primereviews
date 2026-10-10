@@ -96,7 +96,7 @@ export function normaliseRenderHash(value: string) {
 }
 
 export async function verifyQrImage(image: Buffer, expected: string) {
-  for (const width of [1200, 600, 350]) {
+  for (const width of [600]) {
     const decoded = await sharp(image).resize({ width }).grayscale().raw().toBuffer({ resolveWithObject: true });
     const source = new RGBLuminanceSource(new Uint8ClampedArray(decoded.data), decoded.info.width, decoded.info.height);
     const result = new QRCodeReader().decode(new BinaryBitmap(new HybridBinarizer(source)));

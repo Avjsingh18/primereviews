@@ -35,7 +35,7 @@ function hashFor(design: { category: QrStudioCategory; variantIndex: number; pho
 
 // The category always comes from the business type saved in the database. The first design is created automatically.
 async function applyDesign(context: Context, body: Record<string, unknown>): Promise<{ design?: DesignRow; problem?: string }> {
-  const existing = await activeDesign(context.business.id);
+  const [existing, photoResult] = await Promise.all([activeDesign(context.business.id), supabaseAdmin().from("business_photos").select("sha256").eq("business_id", context.business.id).maybeSingle()]);
   const category = context.business.category;
   const current = existing && existing.variant_index < QR_STUDIO_DESIGN_COUNT ? existing.variant_index : 0;
   const validSeen = (Array.isArray(existing?.seen_variants) ? existing!.seen_variants : []).filter((value): value is number => Number.isInteger(value) && value >= 0 && value < QR_STUDIO_DESIGN_COUNT);
@@ -55,12 +55,12 @@ async function applyDesign(context: Context, body: Record<string, unknown>): Pro
   if (custom && "error" in custom) return { problem: custom.error || "Use a valid custom tagline." };
   const keepsPreset = existing?.tagline_source === "preset" && existing.tagline_id && TONES.some((value) => studioTaglines(category, value).includes(existing.tagline_id!));
   const tagline = custom ? custom.text : (typeof body.tagline === "string" && studioTaglines(category, tone).includes(body.tagline) ? body.tagline : keepsPreset ? existing!.tagline_id! : stableTagline(category, context.business.id));
-  const { data: photo } = await supabaseAdmin().from("business_photos").select("sha256").eq("business_id", context.business.id).maybeSingle();
+  const photo = photoResult.data;
   const bwMode = typeof body.bwMode === "boolean" ? body.bwMode : existing?.bw_mode ?? false;
   const fields = { category_slug: category, variant_index: variantIndex, palette_source: photo ? "photo" : "theme", photo_sha256: photo?.sha256 ?? null, tagline_source: taglineSource, tagline_id: taglineSource === "preset" ? tagline : null, tagline_custom: taglineSource === "custom" ? tagline : null, bw_mode: bwMode, seen_variants: seen, render_hash: hashFor({ category, variantIndex, photoSha256: photo?.sha256 ?? null, taglineSource, tagline, bwMode }, context) };
-  const write = existing ? await supabaseAdmin().from("qr_studio_designs").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", existing.id) : await supabaseAdmin().from("qr_studio_designs").insert({ business_id: context.business.id, ...fields });
+  const write = existing ? await supabaseAdmin().from("qr_studio_designs").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", existing.id).select("*").maybeSingle() : await supabaseAdmin().from("qr_studio_designs").insert({ business_id: context.business.id, ...fields }).select("*").maybeSingle();
   if (write.error) throw write.error;
-  const saved = await activeDesign(context.business.id); if (!saved) throw new Error("Missing QR Studio design.");
+  const saved = write.data as DesignRow | null; if (!saved) throw new Error("Missing QR Studio design.");
   return { design: saved };
 }
 
