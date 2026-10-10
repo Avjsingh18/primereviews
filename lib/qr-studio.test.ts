@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import test from "node:test";
 import sharp from "sharp";
 import { printable, renderStudioCard } from "./qr-card";
-import { asCategory, cleanDisplayText, normaliseRenderHash, optimisePhoto, qrStudioThemes, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
+import { asCategory, cleanDisplayText, normaliseRenderHash, derivePhotoPalette, optimisePhoto, qrStudioThemes, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
 
 test("uses the supplied static categories and a stable default tagline", () => {
   assert.equal(asCategory("plant_nurseries"), "plant_nurseries");
@@ -71,4 +71,15 @@ test("renders long business names without clipping and keeps the QR scannable", 
   const url = "https://reviewflow.example/r/long-name";
   const result = await renderStudioCard({ businessName: "The Grind House Coffee Roasters & Bakery", trackingUrl: url, category: "cafes", variantIndex: 2, tagline: "Loved your coffee? Tell the world", bwMode: false });
   await verifyQrImage(result.image, url);
+});
+
+test("keeps the photo's colour instead of turning the QR black on dark photos", async () => {
+  const night = await sharp({ create: { width: 200, height: 200, channels: 3, background: "#1a0f08" } }).composite([{ input: Buffer.from('<svg width="200" height="200"><circle cx="60" cy="60" r="40" fill="#e8962e"/><circle cx="150" cy="140" r="30" fill="#c8741c"/></svg>') }]).png().toBuffer();
+  const fallback = { dark: "#111111", accent: "#222222", light: "#ffffff" };
+  const palette = await derivePhotoPalette(night, fallback);
+  assert.notDeepEqual(palette, fallback);
+  const [red, green, blue] = [1, 3, 5].map((index) => parseInt(palette.dark.slice(index, index + 2), 16));
+  assert.ok(red > green && green >= blue && red >= 60, `dark colour ${palette.dark} should be a deep warm tone, not black`);
+  const grey = await sharp({ create: { width: 100, height: 100, channels: 3, background: "#777777" } }).png().toBuffer();
+  assert.deepEqual(await derivePhotoPalette(grey, fallback), fallback);
 });

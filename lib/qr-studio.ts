@@ -10,7 +10,7 @@ export const QR_STUDIO_MAX_REQUEST_BYTES = 6 * 1024 * 1024;
 export const QR_STUDIO_MAX_TAGLINE_LENGTH = 60;
 export const QR_STUDIO_DESIGN_COUNT = 4;
 // Bump when the card renderer changes so cached renders (and stored render hashes) are replaced.
-export const QR_STUDIO_RENDER_VERSION = 3;
+export const QR_STUDIO_RENDER_VERSION = 4;
 
 export type QrStudioCategory =
   | "cafes" | "restaurants" | "hotels" | "pg" | "salons" | "clinics"
@@ -35,6 +35,32 @@ export const qrStudioThemes: Record<QrStudioCategory, Theme> = {
 
 type TaglineData = { categories: Partial<Record<QrStudioCategory, { label: string } & Record<QrStudioTone, string[]>>> };
 const suppliedTaglines = taglinesJson as TaglineData;
+
+type Palette = { dark: string; accent: string; light: string };
+function hslHex(hue: number, saturation: number, lightness: number) {
+  const a = saturation * Math.min(lightness, 1 - lightness);
+  const channel = (n: number) => { const k = (n + hue / 30) % 12; return Math.round(255 * (lightness - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, "0"); };
+  return `#${channel(0)}${channel(8)}${channel(4)}`;
+}
+// Picks the photo's dominant colourful hue and builds a rich dark / vivid accent / soft light palette from it,
+// so a dark photo never turns the QR black. Mostly grey photos fall back to the business-type theme.
+export async function derivePhotoPalette(photo: Buffer, fallback: Palette): Promise<Palette> {
+  const { data } = await sharp(photo).resize(48, 48, { fit: "cover" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const bins = new Array<number>(24).fill(0); let total = 0;
+  for (let index = 0; index < data.length; index += 3) {
+    const red = data[index] / 255, green = data[index + 1] / 255, blue = data[index + 2] / 255;
+    const max = Math.max(red, green, blue), min = Math.min(red, green, blue), delta = max - min, lightness = (max + min) / 2;
+    if (delta < 0.08 || lightness < 0.06 || lightness > 0.94) continue;
+    const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+    const hue = (max === red ? ((green - blue) / delta + 6) % 6 : max === green ? (blue - red) / delta + 2 : (red - green) / delta + 4) * 60;
+    const weight = saturation * (1 - Math.abs(2 * lightness - 1)) + 0.02;
+    bins[Math.floor(hue / 15) % 24] += weight; total += weight;
+  }
+  if (total < 3) return fallback;
+  let best = 0; for (let index = 1; index < 24; index++) if (bins[index] + bins[(index + 23) % 24] * 0.5 + bins[(index + 1) % 24] * 0.5 > bins[best] + bins[(best + 23) % 24] * 0.5 + bins[(best + 1) % 24] * 0.5) best = index;
+  const hue = best * 15 + 7.5;
+  return { dark: hslHex(hue, 0.6, 0.2), accent: hslHex(hue, 0.78, 0.52), light: hslHex(hue, 0.4, 0.96) };
+}
 
 export function qrStudioEnabled() { return process.env[QR_STUDIO_FLAG] !== "false"; }
 export function qrLegacyArtworkEnabled() { return process.env[QR_STUDIO_LEGACY_FLAG] === "true"; }
@@ -87,8 +113,6 @@ export async function optimisePhoto(file: Buffer) {
   if (output.length > 80 * 1024) throw new Error("This photo cannot be optimised below 80 KB. Please choose a simpler photo.");
   const optimised = await sharp(output).metadata();
   if (optimised.width !== 720 || optimised.height !== 960) throw new Error("The photo could not be processed.");
-  const { data } = await sharp(output).resize(1, 1).raw().toBuffer({ resolveWithObject: true });
-  const [red, green, blue] = data; const dark = `#${[red, green, blue].map((part) => Math.max(0, Math.round(part * .25)).toString(16).padStart(2, "0")).join("")}`;
-  const accent = `#${[red, green, blue].map((part) => part.toString(16).padStart(2, "0")).join("")}`;
-  return { bytes: output, width: optimised.width, height: optimised.height, sha256: crypto.createHash("sha256").update(output).digest("hex"), palette: { dark, accent, light: "#FCFCF8" } };
+  const palette = await derivePhotoPalette(output, { dark: qrStudioThemes.other.dark, accent: qrStudioThemes.other.accent, light: qrStudioThemes.other.light });
+  return { bytes: output, width: optimised.width, height: optimised.height, sha256: crypto.createHash("sha256").update(output).digest("hex"), palette };
 }

@@ -4,7 +4,7 @@ import { parse, type Font } from "opentype.js";
 import poppins500 from "./fonts/poppins-500";
 import poppins600 from "./fonts/poppins-600";
 import poppins700 from "./fonts/poppins-700";
-import { QR_STUDIO_DESIGN_COUNT, QR_STUDIO_MAX_TAGLINE_LENGTH, cleanDisplayText, qrStudioThemes, type QrStudioCategory } from "./qr-studio";
+import { QR_STUDIO_DESIGN_COUNT, derivePhotoPalette, QR_STUDIO_MAX_TAGLINE_LENGTH, cleanDisplayText, qrStudioThemes, type QrStudioCategory } from "./qr-studio";
 
 // Card text is converted to vector paths from a bundled font, so rendering never depends on fonts installed on the server.
 const WIDTH = 1200;
@@ -149,7 +149,7 @@ export async function renderStudioCard(input: StudioRenderInput) {
   const theme = qrStudioThemes[input.category];
   const variantIndex = ((input.variantIndex % QR_STUDIO_DESIGN_COUNT) + QR_STUDIO_DESIGN_COUNT) % QR_STUDIO_DESIGN_COUNT;
   const { style: variant, badge: withBadge } = QR_STUDIO_DESIGNS[variantIndex];
-  const palette = input.bwMode ? { dark: "#000000", accent: "#000000", light: "#ffffff" } : { dark: input.photoPalette?.dark || theme.dark, accent: input.photoPalette?.accent || theme.accent, light: input.photoPalette?.light || theme.light };
+  const palette = input.bwMode ? { dark: "#000000", accent: "#000000", light: "#ffffff" } : input.photo ? await derivePhotoPalette(input.photo, theme) : { dark: theme.dark, accent: theme.accent, light: theme.light };
   const ink = input.bwMode ? "#000000" : "#FFFFFF";
   const name = printable((cleanDisplayText(input.businessName, 60) ?? "Your business").toUpperCase(), 700).trim() || "YOUR BUSINESS";
   const tagline = printable(cleanDisplayText(input.tagline, QR_STUDIO_MAX_TAGLINE_LENGTH) ?? "Tell us about your experience", 500).trim() || "Tell us about your experience";
