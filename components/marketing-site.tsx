@@ -113,7 +113,13 @@ function HowItWorks() {
   const flipped = pinned.map((value, index) => value || hovered[index]);
   const secondRef = useRef<HTMLDivElement>(null); const secondVisible = useInView(secondRef, { once: true, amount: 0.7 });
   const toggle = (index: number) => setPinned((state) => state.map((value, position) => position === index ? !value : value));
-  const hover = (index: number, value: boolean) => setHovered((state) => state.map((current, position) => position === index ? value : current));
+  // A short pause before turning over, so a mouse passing across the tiles does not make them flicker.
+  const hoverTimers = useRef<Array<number | undefined>>([]);
+  const hover = (index: number, value: boolean) => {
+    window.clearTimeout(hoverTimers.current[index]);
+    const apply = () => setHovered((state) => state.map((current, position) => position === index ? value : current));
+    if (value) hoverTimers.current[index] = window.setTimeout(apply, 220); else apply();
+  };
   // The QR card flips by itself the first time it scrolls into view, then stays under the visitor's control.
   useEffect(() => { if (!secondVisible || reduced) return; const timer = window.setTimeout(() => setPinned((state) => [state[0], true, state[2]]), 700); return () => window.clearTimeout(timer); }, [secondVisible, reduced]);
   return <section id="how-it-works" className={styles.section}>

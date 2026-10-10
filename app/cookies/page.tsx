@@ -21,7 +21,7 @@ export default function CookiesPage() {
     </ul>
     <p>If we add analytics or any non-essential cookies in future, we will update this policy and ask for your consent first where the law requires it.</p>
     <h2>4. Other storage</h2>
-    <p>Our pages may keep short-lived items in your browser, such as an unsent form value, to make the site work. We do not use them to track you across sites. Pages we link to, including Google, set their own cookies under their own policies.</p>
+    <p>We do not use local storage or similar browser storage to keep personal data or to track you. Our pages only clear items that earlier versions of the site may have left behind. Pages we link to, including Google, set their own cookies under their own policies.</p>
     <h2>5. Your choices</h2>
     <p>You can block or delete cookies in your browser settings. If you block the essential cookie you will not be able to stay signed in. For more on how we handle personal data see our <a href="/privacy">Privacy Policy</a>.</p>
     <h2>6. Contact</h2>

@@ -13,21 +13,22 @@ export default function PrivacyPage() {
     <h2>2. Information we collect</h2>
     <h3>Information you give us</h3>
     <ul>
-      <li><b>Account details:</b> your name, business name, email address and password. Passwords are handled by our authentication provider; we never see or store your password in readable form.</li>
-      <li><b>Business details:</b> your business name, business type, Google review link and the latitude and longitude of your business.</li>
-      <li><b>QR card content:</b> the tagline you choose or write, your QR card design choices and, if you upload one, an ambience photo.</li>
+      <li><b>Account details:</b> your name, business name and email address. Your password is sent to our authentication provider, which keeps only a secure one-way hash; we do not store your password. We also record when you accepted these Terms and which version.</li>
+      <li><b>Business details:</b> your business name, business type, Google review link and your business location (latitude and longitude). You can type the location or, if you press “Use my location”, share it through your browser, which asks your permission first.</li>
+      <li><b>QR card content:</b> the tagline you choose or write, your design choices (design style and black-and-white mode) and, if you upload one, an ambience photo or the ready-made background you select. Uploaded photos have their metadata removed and are compressed before we store them.</li>
       <li><b>Messages:</b> anything you send us when you contact us.</li>
     </ul>
     <h3>Information created when you use the service</h3>
     <ul>
-      <li><b>QR scan counts:</b> when someone scans your QR code we add one to that day’s visit count for your QR code and redirect them to your Google review page. The count is stored on its own: we do not store the visitor’s IP address, name or device details with it, and we try to exclude bots and link previews.</li>
-      <li><b>Google rating data:</b> your current Google rating and review count, saved as a daily snapshot so charts can show change over time.</li>
-      <li><b>Session data:</b> an encrypted session so you stay signed in, and sign-in and sign-out times.</li>
+      <li><b>QR scan counts:</b> when someone scans your QR code we add one to that day’s visit count for your QR code and redirect them to your Google review page. The count is stored on its own, as a number per QR code per day. We do not store the visitor’s IP address, name or device details with it, and we try to exclude bots and link previews. We read the visitor’s browser type at that moment only to tell bots from people, and we do not store it.</li>
+      <li><b>Google rating data:</b> your current Google rating and review count, saved as a daily snapshot so charts can show change over time, and recent Google results (see below) kept in a cache for up to 24 hours.</li>
+      <li><b>Session and security records:</b> a random session identifier and encrypted sign-in tokens so you stay signed in, plus security records such as the time of your last password change and a short temporary lock that is used while a password change is being processed.</li>
+      <li><b>Your QR link:</b> your QR code contains a public short link. Its address includes a short identifier based on your business name, and anyone who opens it is redirected to your Google review link.</li>
     </ul>
     <h3>Technical data and IP addresses</h3>
-    <p>Like every website, our servers receive your IP address, browser type and the pages you request each time you visit us or scan a QR code. We use the IP address only for security and to prevent abuse: it is turned into a keyed, one-way hash that is used to count requests and apply rate limits, and those hashes are kept only briefly. We do not store IP addresses in readable form in our application database. However, the hosting and infrastructure providers that deliver our service handle IP addresses and request details as part of normal operation, and may keep them in their own security and operational logs for a limited time under their own policies.</p>
-    <h3>Information from Google</h3>
-    <p>We use the Google Places API to fetch public information such as ratings, review counts and nearby business listings. To do this we send your business location (and, for rankings, the business type you chose) to Google. We keep the results in a cache for up to 24 hours.</p>
+    <p>Like every website, our servers receive your IP address, browser type and the pages you request each time you visit us or scan a QR code. We use the IP address (and, for sign-in and sign-up limits, your email address or account identifier) only for security and to prevent abuse: it is turned into a keyed, one-way hash that is used to count requests and apply rate limits, and those hashes are deleted after a short period of inactivity. We do not store IP addresses in readable form in our application database. However, the hosting, database and authentication providers that deliver our service handle IP addresses and request details as part of normal operation, and may keep them in their own security and operational logs for a limited time under their own policies.</p>
+    <h3>Information we send to and receive from Google</h3>
+    <p>We use the Google Places API server-side. To find your business and your Google rating we send Google your business name and location. To build the local rankings we send your business location and search keywords for the business type you chose. We receive public information such as ratings, review counts, business names, addresses, distances and map links of nearby businesses. We do not send your name, email address or password to Google.</p>
 
     <h2>3. How we use information</h2>
     <ul>
@@ -60,7 +61,7 @@ export default function PrivacyPage() {
     <p>We may also disclose information if required by law, to protect rights, safety or the security of the service, or in connection with a merger, acquisition or sale of our business, in which case we will tell you before your data becomes subject to a different policy.</p>
 
     <h2>6. People who scan your QR code</h2>
-    <p>{legal.productName} does not ask scanners for any personal details. After the scan is counted they are sent to Google, and Google’s own privacy policy applies to anything they do there, including writing a review. If you collect personal data from your customers in other ways, you are responsible for meeting your own privacy obligations to them.</p>
+    <p>{legal.productName} does not ask scanners for any personal details and does not store their IP address or device details with the scan count. The request does pass through our infrastructure, so the technical handling described in section 2 applies to it. After the scan is counted they are sent to Google, and Google’s own privacy policy applies to anything they do there, including writing a review. If you collect personal data from your customers in other ways, you are responsible for meeting your own privacy obligations to them.</p>
 
     <h2>7. International use and transfers</h2>
     <p>{legal.productName} is available internationally. We and our providers may process and store your data in India, the United States, the European Union and other countries where those providers operate, which may have data protection laws different from those where you live. Where the law requires it, we use appropriate safeguards for these transfers, such as standard contractual clauses, and we require providers to protect data to a comparable standard.</p>
@@ -68,12 +69,13 @@ export default function PrivacyPage() {
     <h2>8. How long we keep information</h2>
     <table><thead><tr><th>Information</th><th>Retention</th></tr></thead><tbody>
       <tr><td>Account, business and QR card data</td><td>While your account is active, then deleted or anonymised within a reasonable period after you close it, unless the law requires us to keep it</td></tr>
-      <tr><td>Scan counts and rating snapshots</td><td>While your account is active, then deleted with it</td></tr>
-      <tr><td>Uploaded photo</td><td>Until you remove or replace it, or close your account</td></tr>
+      <tr><td>Daily scan counts</td><td>Up to 2 years on a rolling basis, or until you close your account if sooner</td></tr>
+      <tr><td>Rating snapshots</td><td>While your account is active, then deleted with it</td></tr>
+      <tr><td>Uploaded photo or selected background</td><td>Until you remove or replace it, or close your account</td></tr>
       <tr><td>Sign-in sessions</td><td>Up to 7 days, or until you sign out or change your password</td></tr>
-      <tr><td>Abuse-prevention counters</td><td>Short periods, typically minutes to a day</td></tr>
-      <tr><td>Google data cache</td><td>Up to 24 hours</td></tr>
-      <tr><td>Backups</td><td>Held by our providers for a limited period and then overwritten</td></tr>
+      <tr><td>Abuse-prevention hashes</td><td>Deleted after about 2 days of inactivity</td></tr>
+      <tr><td>Google results cache</td><td>Up to 24 hours</td></tr>
+      <tr><td>Provider logs and backups</td><td>Held by our providers for a limited period under their own policies</td></tr>
     </tbody></table>
 
     <h2>9. Security</h2>
