@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import sharp from "sharp";
 import { printable, renderStudioCard } from "./qr-card";
+import { deleteAccountData, type DeletionClient } from "./account-deletion";
 import { asCategory, cleanDisplayText, normaliseRenderHash, derivePhotoPalette, optimisePhoto, qrStudioThemes, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
 
 test("uses the supplied static categories and a stable default tagline", () => {
@@ -94,5 +95,29 @@ test("ships a valid ready-made background for every business type", async () => 
     assert.equal(meta.format, "webp"); assert.equal(meta.width, 720); assert.equal(meta.height, 960);
     const palette = await derivePhotoPalette(bytes, { dark: "#111111", accent: "#222222", light: "#ffffff" });
     assert.match(palette.dark, /^#[0-9a-f]{6}$/);
+  }
+});
+
+function fakeDeletionClient(failOn?: string) {
+  const calls: string[] = [];
+  const client: DeletionClient = {
+    from: (table) => ({ delete: () => ({ eq: async (column, value) => { calls.push(`delete ${table}.${column}=${value}`); return { error: failOn === table ? new Error("boom") : null }; } }) }),
+    storage: { from: (bucket) => ({ list: async () => ({ data: [{ name: "user-1_abc.webp" }, { name: "user-2_def.webp" }] }), remove: async (paths) => { calls.push(`remove ${bucket}:${paths.join(",")}`); return { error: null }; } }) },
+    auth: { admin: { deleteUser: async (id) => { calls.push(`deleteUser ${id}`); return { error: failOn === "auth" ? new Error("boom") : null }; } } },
+  };
+  return { client, calls };
+}
+
+test("account deletion removes sessions, cache, business data and the sign-in account, and only this user's files", async () => {
+  const { client, calls } = fakeDeletionClient();
+  await deleteAccountData(client, "user-1");
+  assert.deepEqual(calls, ["remove qr-artwork:user-1_abc.webp", "delete app_sessions.user_id=user-1", "delete reviewflow_cache.owner_id=user-1", "delete businesses.user_id=user-1", "deleteUser user-1"]);
+});
+
+test("account deletion stops and reports failure instead of pretending it finished", async () => {
+  for (const failing of ["businesses", "auth"]) {
+    const { client, calls } = fakeDeletionClient(failing);
+    await assert.rejects(() => deleteAccountData(client, "user-1"));
+    if (failing === "businesses") assert.ok(!calls.some((call) => call.startsWith("deleteUser")), "the sign-in account must not be deleted if data deletion failed");
   }
 });

@@ -68,10 +68,10 @@ export default function PrivacyPage() {
 
     <h2>8. How long we keep information</h2>
     <table><thead><tr><th>Information</th><th>Retention</th></tr></thead><tbody>
-      <tr><td>Account, business and QR card data</td><td>While your account is active, then deleted or anonymised within a reasonable period after you close it, unless the law requires us to keep it</td></tr>
-      <tr><td>Daily scan counts</td><td>Up to 2 years on a rolling basis, or until you close your account if sooner</td></tr>
-      <tr><td>Rating snapshots</td><td>While your account is active, then deleted with it</td></tr>
-      <tr><td>Uploaded photo or selected background</td><td>Until you remove or replace it, or close your account</td></tr>
+      <tr><td>Account, business and QR card data</td><td>While your account is active. When you delete your account in Settings, it is deleted from our systems straight away, unless the law requires us to keep something; copies in provider backups are overwritten over time</td></tr>
+      <tr><td>Daily scan counts</td><td>Up to 2 years on a rolling basis, or until you delete your account if sooner</td></tr>
+      <tr><td>Rating snapshots</td><td>While your account is active, then deleted with it when you delete your account</td></tr>
+      <tr><td>Uploaded photo or selected background</td><td>Until you remove or replace it, or delete your account</td></tr>
       <tr><td>Sign-in sessions</td><td>Up to 7 days, or until you sign out or change your password</td></tr>
       <tr><td>Abuse-prevention hashes</td><td>Deleted after about 2 days of inactivity</td></tr>
       <tr><td>Google results cache</td><td>Up to 24 hours</td></tr>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
 
     <h2>10. Your rights</h2>
     <p>Depending on where you live, you may have the right to access your personal data, correct it, have it erased, withdraw consent, nominate someone to exercise your rights if you die or become unable to, object to or restrict certain processing, receive a copy in a portable format and complain to a data protection authority. This includes your rights under India’s Digital Personal Data Protection Act, 2023 and, for people in the European Economic Area or the United Kingdom, the GDPR.</p>
-    <p>You can correct most details and remove your photo in Settings. To exercise any other right, or to close your account and delete your data, email {legal.contactEmail}. We may need to verify your identity first and will respond within the time the law requires.</p>
+    <p>You can correct most details and remove your photo in Settings, and you can delete your account and all of your data yourself in Settings under “Delete account” (you will be asked for your password). To exercise any other right, email {legal.contactEmail}. We may need to verify your identity first and will respond within the time the law requires.</p>
 
     <h3>Additional information for certain regions</h3>
     <ul>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Crosshair, Link2, Lock, LogOut, MapPin, Save } from "lucide-react";
+import { Check, Crosshair, Link2, Lock, LogOut, MapPin, Save, Trash2 } from "lucide-react";
 import ReputationShell from "./reputation-shell";
 import { BUSINESS_TYPES, isBusinessType, type BusinessType } from "@/lib/business-types";
 
@@ -17,6 +17,7 @@ export default function Settings() {
   const [message, setMessage] = useState("");
   const [savedToast, setSavedToast] = useState(false);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false); const [deleteOpen, setDeleteOpen] = useState(false); const [deleteBusy, setDeleteBusy] = useState(false); const [deleteError, setDeleteError] = useState(""); const [deleteDone, setDeleteDone] = useState(false);
   const headers = () => ({ "Content-Type": "application/json" });
 
   useEffect(() => {
@@ -54,6 +55,18 @@ export default function Settings() {
     if (!response.ok) return setError(data.error || "Password could not be updated.");
     window.location.assign("/login");
   }
+  async function deleteAccount(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setDeleteError(""); setDeleteBusy(true); const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch(`${api}/api/auth/delete-account`, { method:"POST", headers:headers(), body:JSON.stringify({ password:form.get("delete-password"), confirm:form.get("delete-confirm") === "on" }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Your account could not be deleted.");
+      localStorage.removeItem("reviewflow_token"); localStorage.removeItem("reviewflow_business"); localStorage.removeItem("prime_reviews_business");
+      setDeleting(true); setDeleteDone(true);
+      window.setTimeout(() => window.location.assign("/"), 2500);
+    } catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Your account could not be deleted."); }
+    finally { setDeleteBusy(false); }
+  }
   async function logout() {
     setError("");
     try {
@@ -69,5 +82,6 @@ export default function Settings() {
     <section className="card settings-card"><h2>Change password</h2><form onSubmit={password}><label>Current password<input name="current" required type="password" autoComplete="current-password" /></label><label>New password<input name="new" required minLength={12} maxLength={72} type="password" autoComplete="new-password" /></label><label>Confirm new password<input name="confirm" required minLength={12} maxLength={72} type="password" autoComplete="new-password" /></label><button className="outline"><Lock />Update password</button></form></section>
     <section className="card settings-card"><h2>Google Business Profile</h2><p className="muted">Connect the Google account that manages this business to sync reviews and publish owner-approved replies.</p><button className="outline" disabled title="Google OAuth has not been configured yet"><Link2 />Connect Google Business Profile</button><p className="muted" style={{ fontSize:12, marginTop:12 }}>OAuth setup is required before this connection can be enabled.</p></section>
     <section className="card settings-card"><h2>Session</h2><p className="muted">Sign out to revoke this browser’s session immediately.</p><button type="button" className="outline" onClick={logout}><LogOut />Log out</button></section>
+    <section className="card settings-card danger-zone"><h2>Delete account</h2>{deleteDone ? <p className="form-success" role="status"><Check />Your account and data have been deleted. Taking you to the home page…</p> : <><p className="muted">Permanently delete your account and everything in it: your business details, QR code and scan history, rating history, photo and settings. This cannot be undone, and printed QR codes will stop working.</p>{deleteOpen ? <form onSubmit={deleteAccount}><label>Enter your password to confirm<input name="delete-password" required type="password" autoComplete="current-password" maxLength={256} /></label><label className="danger-check"><input name="delete-confirm" type="checkbox" required /><span>I understand that my account and all of my data will be permanently deleted.</span></label>{deleteError ? <p className="form-error" role="alert">{deleteError}</p> : null}<div className="danger-actions"><button type="submit" className="danger-button" disabled={deleteBusy}><Trash2 />{deleteBusy ? "Deleting…" : "Permanently delete my account"}</button><button type="button" className="outline" onClick={() => { setDeleteOpen(false); setDeleteError(""); }} disabled={deleteBusy}>Cancel</button></div></form> : <button type="button" className="danger-button" onClick={() => setDeleteOpen(true)}><Trash2 />Delete my account…</button>}</>}</section>
   </div></ReputationShell>;
 }

@@ -98,3 +98,13 @@ label select,.settings-card select{display:block;width:100%;padding:12px 14px;ma
 .auth-legal{margin:16px 0 0;font-size:12px;line-height:1.5;color:#6d6882;text-align:center}
 .app-legal{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:44px;padding-top:18px;border-top:1px solid rgba(31,27,46,.1)}
 .app-legal a{color:#6d6882;font-size:12px;font-weight:600;text-decoration:none}.app-legal a:hover{color:#c0401a}
+
+.danger-zone{border-color:rgba(224,62,92,.35)!important}
+.danger-zone h2{color:#b4233f}
+.danger-button{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:12px 18px;background:#c62f4d;color:#fff;font:700 14px inherit;cursor:pointer;box-shadow:0 8px 22px rgba(198,47,77,.3);transition:transform .2s,box-shadow .2s}
+.danger-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 28px rgba(198,47,77,.4)}
+.danger-button:disabled{opacity:.6;cursor:default}
+.danger-button svg{width:16px;height:16px}
+.danger-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.settings-card .danger-check{display:flex;align-items:flex-start;gap:10px;margin-top:14px;font-size:13px;font-weight:500;line-height:1.5}
+.settings-card .danger-check input[type=checkbox]{flex:none;width:18px;height:18px;margin:2px 0 0;padding:0;accent-color:#c62f4d}

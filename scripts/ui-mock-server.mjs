@@ -61,6 +61,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { businessName: state.business.name, onboardingRequired: false }, { "Set-Cookie": cookie });
   }
   if (route === "/api/auth/logout") return send(res, 200, { ok: true }, { "Set-Cookie": "prime_reviews_session=; Path=/; HttpOnly; Max-Age=0" });
+  if (route === "/api/auth/delete-account") { const body = await readBody(req); if (body.password === "wrong") return send(res, 401, { error: "That password is incorrect." }); return send(res, 200, { deleted: true }, { "Set-Cookie": "prime_reviews_session=; Path=/; HttpOnly; Max-Age=0" }); }
   if (route === "/api/auth/change-password") return send(res, 200, { ok: true });
   if (route === "/api/business" && method === "GET") return send(res, 200, { ...state.business, trackingUrl: trackingUrl() });
   if (route === "/api/business") { const body = await readBody(req); Object.assign(state.business, { name: body.name ?? state.business.name, googleReviewUrl: body.googleReviewUrl ?? state.business.googleReviewUrl, category: body.category ?? state.business.category, latitude: body.latitude ?? state.business.latitude, longitude: body.longitude ?? state.business.longitude }); return send(res, 200, { ...state.business, trackingUrl: trackingUrl() }); }
