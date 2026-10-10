@@ -13,7 +13,7 @@ export default function PrivacyPage() {
     <h2>2. Information we collect</h2>
     <h3>Information you give us</h3>
     <ul>
-      <li><b>Account details:</b> your name, business name and email address. Your password is sent to our authentication provider, which keeps only a secure one-way hash; we do not store your password. We also record when you accepted these Terms and which version.</li>
+      <li><b>Account details:</b> your name, business name and email address. Your password is sent to our authentication provider, which keeps only a secure one-way hash; we do not store your password. When you sign up we also record that you confirmed you are 18 or older and accepted our Terms, along with the time and the version of the Terms. We do not ask for your date of birth.</li>
       <li><b>Business details:</b> your business name, business type, Google review link and your business location (latitude and longitude). You can type the location or, if you press “Use my location”, share it through your browser, which asks your permission first.</li>
       <li><b>QR card content:</b> the tagline you choose or write, your design choices (design style and black-and-white mode) and, if you upload one, an ambience photo or the ready-made background you select. Uploaded photos have their metadata removed and are compressed before we store them.</li>
       <li><b>Messages:</b> anything you send us when you contact us.</li>
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
     <p>If you use {legal.productName} on behalf of a business and add personal data of other people, you are responsible for having a lawful basis to do so. Businesses that need a data processing agreement can contact us.</p>
 
     <h2>11. Children</h2>
-    <p>{legal.productName} is for businesses and is not directed at anyone under 18. We do not knowingly collect personal data from children. If you believe a child has given us personal data, contact us and we will delete it.</p>
+    <p>{legal.productName} is for businesses and is not directed at anyone under 18. We do not knowingly collect personal data from children, and signing up requires you to confirm that you are 18 or older. If you believe a child has given us personal data, contact us and we will delete it.</p>
 
     <h2>12. Links to other sites</h2>
     <p>Our service links to Google and may link to other websites. We are not responsible for their content or privacy practices.</p>
