@@ -62,6 +62,8 @@ const server = http.createServer(async (req, res) => {
   }
   if (route === "/api/auth/logout") return send(res, 200, { ok: true }, { "Set-Cookie": "prime_reviews_session=; Path=/; HttpOnly; Max-Age=0" });
   if (route === "/api/auth/delete-account") { const body = await readBody(req); if (body.password === "wrong") return send(res, 401, { error: "That password is incorrect." }); return send(res, 200, { deleted: true }, { "Set-Cookie": "prime_reviews_session=; Path=/; HttpOnly; Max-Age=0" }); }
+  if (route === "/api/auth/forgot-password") { await readBody(req); return send(res, 200, { ok: true }); }
+  if (route === "/api/auth/reset-password") { const body = await readBody(req); if (!body.accessToken && !body.tokenHash) return send(res, 400, { error: "This reset link has expired or was already used. Please request a new one." }); if (String(body.newPassword || "").length < 12) return send(res, 400, { error: "Use a password with at least 12 characters and no more than 72 bytes." }); return send(res, 200, { ok: true }); }
   if (route === "/api/auth/change-password") return send(res, 200, { ok: true });
   if (route === "/api/business" && method === "GET") return send(res, 200, { ...state.business, trackingUrl: trackingUrl() });
   if (route === "/api/business") { const body = await readBody(req); Object.assign(state.business, { name: body.name ?? state.business.name, googleReviewUrl: body.googleReviewUrl ?? state.business.googleReviewUrl, category: body.category ?? state.business.category, latitude: body.latitude ?? state.business.latitude, longitude: body.longitude ?? state.business.longitude }); return send(res, 200, { ...state.business, trackingUrl: trackingUrl() }); }

@@ -35,7 +35,7 @@ export default function PrivacyPage() {
       <li>To create and secure your account and provide the service you asked for.</li>
       <li>To show scan counts, ratings, competitor comparisons and your QR cards.</li>
       <li>To prevent fraud, abuse and security incidents, and to enforce our terms and Google’s review rules.</li>
-      <li>To send service messages such as email confirmation and important notices.</li>
+      <li>To send service messages such as email confirmation, password-reset links and important notices.</li>
       <li>To maintain, debug and improve the service using aggregated, non-identifying information.</li>
       <li>To comply with law and respond to lawful requests.</li>
     </ul>

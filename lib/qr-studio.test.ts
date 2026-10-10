@@ -6,6 +6,7 @@ import test from "node:test";
 import sharp from "sharp";
 import { printable, renderStudioCard } from "./qr-card";
 import { deleteAccountData, type DeletionClient } from "./account-deletion";
+import { recoveryTokenIsFresh } from "./security/recovery";
 import { asCategory, cleanDisplayText, normaliseRenderHash, derivePhotoPalette, optimisePhoto, qrStudioThemes, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
 
 test("uses the supplied static categories and a stable default tagline", () => {
@@ -153,4 +154,16 @@ test("account deletion refuses to finish, and keeps the sign-in account, if data
 test("account deletion reports failure when the sign-in account cannot be removed", async () => {
   const { db } = fakeDatabase({ authFails: true });
   await assert.rejects(() => deleteAccountData(db, deletionOptions), /sign-in account/);
+});
+
+function tokenIssuedAt(seconds: number) { return `x.${Buffer.from(JSON.stringify({ iat: seconds })).toString("base64url")}.y`; }
+test("only a recent token issued after a recovery email is accepted for a password reset", () => {
+  const now = Date.parse("2026-10-11T10:00:00Z");
+  const sent = "2026-10-11T09:55:00Z"; const issued = Date.parse("2026-10-11T09:56:00Z") / 1000;
+  assert.equal(recoveryTokenIsFresh(tokenIssuedAt(issued), { recovery_sent_at: sent }, now), true);
+  assert.equal(recoveryTokenIsFresh(tokenIssuedAt(issued), { recovery_sent_at: null }, now), false, "no recovery email was ever sent");
+  assert.equal(recoveryTokenIsFresh(tokenIssuedAt(Date.parse("2026-10-11T09:20:00Z") / 1000), { recovery_sent_at: "2026-10-11T09:19:00Z" }, now), false, "token is too old");
+  assert.equal(recoveryTokenIsFresh(tokenIssuedAt(Date.parse("2026-10-11T09:50:00Z") / 1000), { recovery_sent_at: sent }, now), false, "token predates the recovery email, so it is an ordinary sign-in token");
+  assert.equal(recoveryTokenIsFresh(tokenIssuedAt(issued), { recovery_sent_at: "2026-10-11T08:00:00Z" }, now), false, "recovery email is too old");
+  assert.equal(recoveryTokenIsFresh("not-a-token", { recovery_sent_at: sent }, now), false);
 });

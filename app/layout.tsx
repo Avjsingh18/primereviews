@@ -5,6 +5,7 @@ import "./settings.css";
 import "./futuristic.css";
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import RecoveryRedirect from "@/components/recovery-redirect";
 
 export const metadata: Metadata = { title: "PrimeReviews", description: "Turn great visits into Google reviews." };
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -12,5 +13,5 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // only emitted during dynamic rendering; without this gate, a prerendered
   // page has no nonce and the browser blocks the app scripts entirely.
   await connection();
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><RecoveryRedirect />{children}</body></html>;
 }

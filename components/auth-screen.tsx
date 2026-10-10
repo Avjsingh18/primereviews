@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import AuthAside from "./auth-aside";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Mail, Lock, Sparkles, User } from "lucide-react";
 
 export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
@@ -12,6 +13,8 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   const [notice, setNotice] = useState("");
   const router = useRouter();
   const signup = mode === "signup";
+  // After a password reset the visitor is sent back here with ?reset=1.
+  useEffect(() => { if (!signup && new URLSearchParams(window.location.search).get("reset") === "1") setNotice("Your password was updated. Sign in with your new password."); }, [signup]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -57,7 +60,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
         <label>Email address<div><Mail /><input name="email" required type="email" placeholder="you@business.com" /></div></label>
         <label>Password<div><Lock /><input name="password" required minLength={signup ? 12 : 1} maxLength={signup ? 72 : 256} autoComplete={signup ? "new-password" : "current-password"} type={showPassword ? "text" : "password"} placeholder={signup ? "At least 12 characters" : "Your password"} /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} style={{ marginLeft: "auto", background: "none", border: 0, padding: 4, display: "grid", placeItems: "center", cursor: "pointer", color: "inherit" }}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
         {signup && <label className="consent"><input type="checkbox" name="terms" required /><span>I am 18 or older and I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>, <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/acceptable-use" target="_blank">Acceptable Use &amp; Reviews Policy</Link>.</span></label>}
-        {!signup && <Link className="forgot" href="#">Forgot password?</Link>}
+        {!signup && <Link className="forgot" href="/forgot-password">Forgot password?</Link>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status"><CheckCircle2 aria-hidden="true" />{notice}</p>}
         <button className="button auth-button" disabled={loading}>{loading ? "Please wait…" : signup ? "Create account" : "Sign in"}<ArrowRight /></button>
@@ -65,12 +68,6 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
       {!signup && <p className="auth-legal">By signing in you agree to our <Link href="/terms" target="_blank">Terms</Link>, <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/cookies" target="_blank">Cookie Policy</Link>.</p>}
       <p className="switch">{signup ? "Already have an account?" : "New to PrimeReviews?"} <Link href={signup ? "/login" : "/signup"}>{signup ? "Sign in" : "Create an account"}</Link></p>
     </section>
-    <aside className="auth-aside" aria-label="PrimeReviews benefits">
-      <div className="orb orb-one" /><div className="orb orb-two" />
-      <div className="auth-proof"><span className="proof-star">★</span><span>Built for neighbourhood businesses</span></div>
-      <div className="auth-visual" aria-hidden="true"><img src="/landing/sample-qr.jpg" alt="" width={840} height={1134} /><span className="auth-chip chip-a">★ 4.8 rating · sample</span><span className="auth-chip chip-b">+128 scans · sample</span></div>
-      <div className="auth-aside-copy"><p>Turn every happy visit into a review worth sharing.</p><span>One QR code. Clear numbers. No busywork.</span></div>
-      <div className="auth-stat"><strong>One scan</strong><span>opens your Google review page instantly</span></div>
-    </aside>
+    <AuthAside />
   </main>;
 }
