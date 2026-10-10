@@ -5,8 +5,8 @@ import Link from "next/link";
 import { ExternalLink, MapPin, Search, Star, Trophy } from "lucide-react";
 import ReputationShell from "./reputation-shell";
 import styles from "./local-benchmark.module.css";
+import { BUSINESS_TYPES } from "@/lib/business-types";
 
-const categories = [{ value:"cafe", label:"Cafés" }, { value:"restaurant", label:"Restaurants" }, { value:"hotel", label:"Hotels" }, { value:"pg", label:"PG" }, { value:"salon", label:"Salons" }, { value:"clinic", label:"Clinics" }, { value:"coaching-centre", label:"Coaching centres" }, { value:"plant-nursery", label:"Plant nurseries" }, { value:"day-care", label:"Day care" }, { value:"preschool", label:"Preschools" }, { value:"gym", label:"Gyms" }];
 type SortBy = "rating" | "reviews" | "distance" | "name";
 type Place = { id:string; name:string; category:string; address:string|null; rating:number|null; reviewCount:number|null; ratingSource:"google"|null; distanceKm:number|null; distanceVerified:boolean; sourceUrl:string|null; googleMapsUrl:string|null; verificationStatus:"verified"|"needs_verification"; retrievedAt:string };
 type Result = { businesses:Place[]; metadata:{ returnedCount:number; searchedAt:string; sourceStatus:"verified"; isComplete:boolean; cached:boolean }; myBusiness:{ rating:number|null; reviewCount:number|null; cached:boolean } };
@@ -17,9 +17,9 @@ function numeric(values: Array<number | null>) { return values.filter((value): v
 function median(values: number[]) { const ordered = [...values].sort((a,b) => a-b); const middle = Math.floor(ordered.length / 2); return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2; }
 
 export default function LocalBenchmark() {
-  const [category, setCategory] = useState("cafe"); const [radiusKm, setRadiusKm] = useState(3); const [sortBy, setSortBy] = useState<SortBy>("rating");
+  const [typeLabel, setTypeLabel] = useState<string | null>(null); const [unsupported, setUnsupported] = useState(false); const [radiusKm, setRadiusKm] = useState(3); const [sortBy, setSortBy] = useState<SortBy>("rating");
   const [result, setResult] = useState<Result | null>(null); const [loading, setLoading] = useState(false); const [message, setMessage] = useState(""); const [hasLocation, setHasLocation] = useState<boolean | null>(null);
-  const categoryLabel = categories.find((item) => item.value === category)?.label ?? category;
+  const categoryLabel = typeLabel ?? "businesses";
   const sortedPlaces = useMemo(() => {
     const places = [...(result?.businesses ?? [])];
     return places.sort((first, second) => {
@@ -34,13 +34,13 @@ export default function LocalBenchmark() {
   const moreReviewed = result?.myBusiness.reviewCount == null ? null : sortedPlaces.filter((place) => place.reviewCount != null && place.reviewCount > result.myBusiness.reviewCount!).length;
 
   useEffect(() => {
-    fetch("/api/business").then((response) => response.ok ? response.json() : null).then((business) => setHasLocation(Boolean(business && business.latitude != null && business.longitude != null))).catch(() => setHasLocation(false));
+    fetch("/api/business").then((response) => response.ok ? response.json() : null).then((business) => { setHasLocation(Boolean(business && business.latitude != null && business.longitude != null)); const type = BUSINESS_TYPES.find((item) => item.value === business?.category); setTypeLabel(type && type.value !== "other" ? type.label : null); setUnsupported(!type || type.value === "other"); }).catch(() => setHasLocation(false));
   }, []);
 
   async function search() {
     setLoading(true); setMessage("");
     try {
-      const response = await fetch("/api/benchmark", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ category, radiusKm, limit:20 }) });
+      const response = await fetch("/api/benchmark", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ radiusKm, limit:20 }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error);
       setResult(data);
       if (!data.metadata.isComplete) setMessage(`${data.metadata.returnedCount} nearby businesses found. Google Places returns up to 20 results per search.`);
@@ -50,8 +50,9 @@ export default function LocalBenchmark() {
 
   const userBusiness = result?.myBusiness;
   return <ReputationShell title="See how similar businesses compare nearby" description="Compare Google ratings and review counts within a chosen radius of your business.">
+    {unsupported ? <section className={styles.locationNeeded}><MapPin aria-hidden="true" /><div><strong>Competitor search needs a business type</strong><p>Competitor results are shown only for your own business type. Choose it in Settings; the &quot;Other&quot; type has no competitor search.</p></div><Link href="/settings">Choose business type</Link></section> : null}
     {hasLocation === false ? <section className={styles.locationNeeded}><MapPin aria-hidden="true" /><div><strong>Add your business location first</strong><p>PrimeReviews needs your saved latitude and longitude to search businesses within 1 km, 3 km, or 5 km of you.</p></div><Link href="/settings">Add location</Link></section> : null}
-    <section className={styles.searchCard} aria-label="Search local businesses"><div className={styles.form}><label className={styles.field}><span>Business category</span><select value={category} onChange={(event) => setCategory(event.target.value)} disabled={loading}>{categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className={styles.field}><span>Search radius</span><select value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))} disabled={loading}><option value={1}>Within 1 km</option><option value={3}>Within 3 km</option><option value={5}>Within 5 km</option></select></label><button className={styles.searchButton} disabled={loading || hasLocation !== true} onClick={() => search()} type="button"><Search aria-hidden="true" />{loading ? "Finding businesses near you…" : "Find businesses"}</button></div></section>
+    <section className={styles.searchCard} aria-label="Search local businesses"><div className={styles.form}><div className={styles.field}><span>Business type</span><strong>{typeLabel ?? (unsupported ? "Other" : "Loading…")}</strong></div><label className={styles.field}><span>Search radius</span><select value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))} disabled={loading}><option value={1}>Within 1 km</option><option value={3}>Within 3 km</option><option value={5}>Within 5 km</option></select></label><button className={styles.searchButton} disabled={loading || hasLocation !== true || unsupported} onClick={() => search()} type="button"><Search aria-hidden="true" />{loading ? "Finding businesses near you…" : "Find businesses"}</button></div></section>
     {message ? <p className={result ? styles.notice : styles.error}>{message}</p> : null}
     {result ? <>
       <section className={styles.resultMeta}><div><strong>{result.metadata.returnedCount} {categoryLabel.toLowerCase()} found within {radiusKm} km</strong><p>{result.metadata.cached ? "Cached result" : "Retrieved"} {displayTime(result.metadata.searchedAt)} · Google Places</p></div><p className={styles.cacheNote}>Results refresh automatically after 24 hours.</p></section>

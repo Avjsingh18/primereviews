@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Eye, Mail, Lock, Sparkles, User } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Mail, Lock, Sparkles, User } from "lucide-react";
 
 export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
       <form onSubmit={submit}>
         {signup && <><label>Your name<div><User /><input name="name" required placeholder="Alex Morgan" /></div></label><label>Business name<div><User /><input name="business" required placeholder="Melbourne Coffee House" /></div></label></>}
         <label>Email address<div><Mail /><input name="email" required type="email" placeholder="you@business.com" /></div></label>
-        <label>Password<div><Lock /><input name="password" required minLength={signup ? 12 : 1} maxLength={signup ? 72 : 256} autoComplete={signup ? "new-password" : "current-password"} type="password" placeholder={signup ? "At least 12 characters" : "Your password"} /><Eye /></div></label>
+        <label>Password<div><Lock /><input name="password" required minLength={signup ? 12 : 1} maxLength={signup ? 72 : 256} autoComplete={signup ? "new-password" : "current-password"} type={showPassword ? "text" : "password"} placeholder={signup ? "At least 12 characters" : "Your password"} /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} style={{ marginLeft: "auto", background: "none", border: 0, padding: 4, display: "grid", placeItems: "center", cursor: "pointer", color: "inherit" }}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
         {!signup && <Link className="forgot" href="#">Forgot password?</Link>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status"><CheckCircle2 aria-hidden="true" />{notice}</p>}
