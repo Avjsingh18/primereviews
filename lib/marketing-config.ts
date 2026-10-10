@@ -1,5 +1,5 @@
+// Pricing is deliberately not invented: the product is free during early access and paid plans have no price yet.
 export const pricingPlans = [
-  { name: "Free", price: "₹0", description: "For trying PrimeReviews with one business.", features: ["One review QR code", "QR scan counter", "Edit your review link"], cta: "Start free", featured: false, comingSoon: false },
-  { name: "Pro", price: "₹TBD", description: "Set this price before launch.", features: ["Everything in Free", "Scan history", "Review snapshots"], cta: "Start free", featured: true, comingSoon: false },
-  { name: "Multi-location", price: "₹TBD", description: "Set this price before launch.", features: ["For teams with several locations", "Multiple locations", "Automated reports"], cta: "Talk to us", featured: false, comingSoon: true },
+  { name: "Early access", price: "₹0", period: "while we are in early access", description: "Everything that is live today, for one business.", features: ["One Google review QR code", "QR Studio cards you can download as JPG", "Scan counts and rating charts", "Local rankings for your business type"], cta: "Start free", featured: true, comingSoon: false },
+  { name: "Pro", price: "Coming soon", period: "", description: "For businesses that want more once the basics are working.", features: ["Everything in early access", "Several locations in one account", "Automated activity reports", "Google Business Profile connection"], cta: "Coming soon", featured: false, comingSoon: true },
 ] as const;

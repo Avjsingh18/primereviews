@@ -1,35 +1,205 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Check, ChevronDown, ClipboardCheck, Download, LineChart, MapPin, QrCode, ScanLine, Sparkles, Star, Store, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AnimatePresence, animate, motion, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
+import { ArrowRight, BarChart3, Baby, BedDouble, Building2, Check, ChevronDown, Coffee, Download, Dumbbell, GraduationCap, HeartPulse, LineChart, MapPin, Backpack, Palette, QrCode, RotateCw, ScanLine, Scissors, ShieldCheck, Sparkles, Sprout, Star, Store, Trophy, UtensilsCrossed } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pricingPlans } from "@/lib/marketing-config";
 import styles from "./marketing-site.module.css";
 
-const steps = [["01", "Add your business", "Save your business name and Google review link."], ["02", "Download your QR code", "Print it where customers are most likely to notice it."], ["03", "Watch the activity", "See scans and record review snapshots in one dashboard."]];
-const placements = ["Counters", "Receipts", "Tables", "Posters", "Packaging"];
-const features = [[QrCode, "QR code generator", "Create a trackable QR code, then download PNG or SVG and print it."], [LineChart, "Scan analytics", "Understand how often customers scan your code over time."], [ClipboardCheck, "Review snapshots", "Record a rating and review count when you check them."], [Zap, "Keep your printed QR working", "Update the review link later without replacing the printed code."], [MapPin, "Competitor comparison", "Compare similar businesses nearby.", true], [Store, "Multiple locations", "Manage more than one business from one account.", true], [Sparkles, "Automated weekly reports", "Receive a recurring summary of activity.", true], [ScanLine, "Campaign tracking", "See where QR placements work best.", true]] as const;
-const faqs = [["Does it work with Google reviews?", "Yes. Your QR code sends a customer to the Google review link that you save for your business."], ["Can you guarantee more reviews?", "No. A scan is not a review. PrimeReviews records scans, while customers decide whether to leave a review on Google."], ["Do I need a Google API?", "No for your QR code and scan tracking. A Google connection is only needed later if you choose to sync Google data automatically."]];
+const businessTypes = [
+  { key: "restaurants", single: "Restaurant", label: "Restaurants", Icon: UtensilsCrossed, dark: "#962318", accent: "#e0701c", light: "#fcf6e8", line: "Loved the food? Tell us!" },
+  { key: "cafes", single: "Café", label: "Cafés", Icon: Coffee, dark: "#3b2418", accent: "#c68b59", light: "#f6ebdd", line: "Loved your coffee? Tell the world" },
+  { key: "hotels", single: "Hotel", label: "Hotels", Icon: BedDouble, dark: "#14213d", accent: "#c9a227", light: "#faf6ec", line: "How was your stay with us?" },
+  { key: "pg", single: "PG", label: "PG", Icon: Building2, dark: "#0f766e", accent: "#f59e0b", light: "#f4faf8", line: "Feels like home? Say so" },
+  { key: "salons", single: "Salon", label: "Salons", Icon: Scissors, dark: "#6b2c5e", accent: "#e8a0bf", light: "#fdf3f7", line: "Love your new look? Tell us" },
+  { key: "clinics", single: "Clinic", label: "Clinics", Icon: HeartPulse, dark: "#0b5fa5", accent: "#19a7a8", light: "#f2f8fc", line: "Your feedback helps us care better" },
+  { key: "coaching", single: "Coaching centre", label: "Coaching", Icon: GraduationCap, dark: "#3730a3", accent: "#fbbf24", light: "#f7f7ff", line: "Share your learning experience" },
+  { key: "nurseries", single: "Plant nursery", label: "Nurseries", Icon: Sprout, dark: "#1e5434", accent: "#8bc34a", light: "#eef4e2", line: "Help our little nursery grow" },
+  { key: "daycare", single: "Day care", label: "Day care", Icon: Baby, dark: "#0369a1", accent: "#fdba74", light: "#fff8ec", line: "Happy kids, happy parents?" },
+  { key: "preschools", single: "Preschool", label: "Preschools", Icon: Backpack, dark: "#1d4ed8", accent: "#facc15", light: "#fffbea", line: "Tell other parents about us" },
+  { key: "gyms", single: "Gym", label: "Gyms", Icon: Dumbbell, dark: "#111827", accent: "#a3e635", light: "#f5f7ef", line: "Did we make you sweat? Say it here" },
+] as const;
 
-function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) { const reduced = useReducedMotion(); return <motion.div initial={reduced ? false : { opacity: 0, y: 20 }} whileInView={reduced ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .18 }} transition={{ duration: .45, delay }}>{children}</motion.div>; }
+const features = [
+  { Icon: QrCode, title: "One QR, straight to Google", text: "Customers scan and land on your Google review page. No app, no sign-up on their side.", wide: true },
+  { Icon: Palette, title: "QR Studio cards", text: "A print-ready card designed for your business type, with your name, your photo and a line of your choice.", wide: true },
+  { Icon: LineChart, title: "Scan analytics", text: "Daily scan counts over 7, 30, 90 days or your own dates." },
+  { Icon: Star, title: "Rating tracking", text: "Current Google rating and review count, with the change over time." },
+  { Icon: MapPin, title: "Local rankings", text: "Compare yourself with nearby businesses of your own type within 1, 3 or 5 km." },
+  { Icon: ShieldCheck, title: "Privacy first", text: "Scans are counted per day. We do not store customers' IP addresses." },
+  { Icon: Store, title: "Several locations", text: "Manage more than one business from one account.", soon: true, wide: true },
+  { Icon: BarChart3, title: "Automated reports", text: "A recurring summary of your activity.", soon: true, wide: true },
+] as const;
 
-function SampleScanDemo() {
+const faqs = [
+  ["Does the QR code really open my Google review page?", "Yes. You paste your Google review link once, and the QR code sends customers to it. You can change the link later in Settings, and the printed code keeps working."],
+  ["Does a scan mean I got a review?", "No. A scan means someone opened your review link. Whether they leave a review is up to them, so we show scans and your Google rating and review count side by side, and we never promise more reviews."],
+  ["Can I give a discount or gift for leaving a review?", "No. Google's policies do not allow rewards in exchange for reviews, and QR Studio blocks taglines that offer them. Ask politely, and make it easy."],
+  ["What does the QR card include?", "Your business name, a design chosen for your business type, an optional photo of your place, a centre badge, and a line under the code. Pick from 50+ ready-made lines in funny, friendly or professional styles, or write your own."],
+  ["Is the QR card safe to print?", "Every card is checked to make sure it scans before you download it, and you can switch to a black-and-white version for plain printers. Still, scan your printout with two or three phones before you print many."],
+  ["How do the local rankings work?", "We use Google Places to list nearby businesses of your own type within 1, 3 or 5 km, with their Google ratings and review counts. It will not match a Google search exactly, because Google search uses its own relevance rules."],
+  ["Which businesses is it for?", "Restaurants, cafés, hotels, PGs, salons, clinics, coaching centres, plant nurseries, day care, preschools and gyms, plus an Other option. Local rankings are not available for Other."],
+  ["What happens to my customers' data?", "We count scans per day and do not keep customers' IP addresses. Your photo is stripped of metadata and stored compressed, and you can remove it at any time."],
+  ["Do I need access to my Google Business Profile?", "No. You only need your public Google review link. A Business Profile connection is on our roadmap, not required today."],
+  ["What does it cost?", "It is free while we are in early access. Paid plans are not priced yet, and we will tell you before anything changes."],
+] as const;
+
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const reduced = useReducedMotion();
+  return <motion.div className={className} initial={reduced ? false : { opacity: 0, y: 28 }} whileInView={reduced ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}>{children}</motion.div>;
+}
+
+function glowMove(event: ReactPointerEvent<HTMLElement>) {
+  const box = event.currentTarget.getBoundingClientRect();
+  event.currentTarget.style.setProperty("--gx", `${event.clientX - box.left}px`);
+  event.currentTarget.style.setProperty("--gy", `${event.clientY - box.top}px`);
+}
+
+function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null); const inView = useInView(ref, { once: true, amount: 0.6 }); const reduced = useReducedMotion();
+  useEffect(() => {
+    if (!inView || !ref.current) return;
+    if (reduced) { ref.current.textContent = `${to}${suffix}`; return; }
+    const controls = animate(0, to, { duration: 1.6, ease: "easeOut", onUpdate: (value) => { if (ref.current) ref.current.textContent = `${Math.round(value)}${suffix}`; } });
+    return () => controls.stop();
+  }, [inView, reduced, to, suffix]);
+  return <span ref={ref}>{reduced ? `${to}${suffix}` : `0${suffix}`}</span>;
+}
+
+function TiltCard() {
+  const reduced = useReducedMotion();
+  const x = useMotionValue(0); const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [9, -9]), { stiffness: 140, damping: 16 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-11, 11]), { stiffness: 140, damping: 16 });
+  const move = (event: ReactPointerEvent<HTMLDivElement>) => { if (reduced) return; const box = event.currentTarget.getBoundingClientRect(); x.set((event.clientX - box.left) / box.width - 0.5); y.set((event.clientY - box.top) / box.height - 0.5); };
+  const leave = () => { x.set(0); y.set(0); };
+  return <div className={styles.tiltStage} onPointerMove={move} onPointerLeave={leave}>
+    <motion.div className={styles.tilt} style={reduced ? undefined : { rotateX, rotateY }}>
+      <img src="/landing/sample-qr.jpg" alt="Sample QR review card for a restaurant" width={840} height={1134} fetchPriority="high" />
+      <span className={styles.sheen} aria-hidden="true" />
+    </motion.div>
+    <span className={`${styles.chip} ${styles.chipA}`}><Star /> 4.8 rating <small>sample</small></span>
+    <span className={`${styles.chip} ${styles.chipB}`}><ScanLine /> +128 scans this week <small>sample</small></span>
+    <span className={`${styles.chip} ${styles.chipC}`}><Check /> Checked to scan</span>
+  </div>;
+}
+
+function FlipCard({ index, title, text, Icon, flipped, onToggle, back, hint }: { index: string; title: string; text: string; Icon: typeof Store; flipped: boolean; onToggle: () => void; back: ReactNode; hint: string }) {
+  return <button type="button" className={`${styles.flip} ${flipped ? styles.isFlipped : ""}`} onClick={onToggle} aria-pressed={flipped} aria-label={`${title}. ${flipped ? "Showing the preview. Press to go back." : hint}`}>
+    <span className={styles.flipInner}>
+      <span className={`${styles.face} ${styles.front}`} aria-hidden={flipped}><em>{index}</em><i><Icon /></i><strong>{title}</strong><span>{text}</span><small><RotateCw /> {hint}</small></span>
+      <span className={`${styles.face} ${styles.backFace}`} aria-hidden={!flipped}>{back}</span>
+    </span>
+  </button>;
+}
+
+function MiniDashboard() {
+  const bars = [38, 52, 44, 66, 58, 82, 74];
+  return <span className={styles.dash}>
+    <span className={styles.dashTop}><b>Sample dashboard</b><small>Last 7 days</small></span>
+    <span className={styles.dashStats}><span><small>Rating</small><b>4.8</b></span><span><small>Scans</small><b>128</b></span><span><small>New reviews</small><b>+9</b></span></span>
+    <svg viewBox="0 0 200 70" className={styles.dashLine} aria-hidden="true"><defs><linearGradient id="dashFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#22d3ee" stopOpacity=".45" /><stop offset="1" stopColor="#22d3ee" stopOpacity="0" /></linearGradient></defs><path d="M0 52 L30 44 L60 48 L90 30 L120 36 L150 18 L200 10 L200 70 L0 70Z" fill="url(#dashFill)" /><path className={styles.dashPath} d="M0 52 L30 44 L60 48 L90 30 L120 36 L150 18 L200 10" fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    <span className={styles.dashBars}>{bars.map((height, position) => <i key={position} style={{ "--h": `${height}%`, "--d": `${position * 70}ms` } as CSSProperties} />)}</span>
+  </span>;
+}
+
+function HowItWorks() {
+  const reduced = useReducedMotion();
+  const [flipped, setFlipped] = useState([false, false, false]);
+  const secondRef = useRef<HTMLDivElement>(null); const secondVisible = useInView(secondRef, { once: true, amount: 0.7 });
+  const toggle = (index: number) => setFlipped((state) => state.map((value, position) => position === index ? !value : value));
+  // The QR card flips by itself the first time it scrolls into view, then stays under the visitor's control.
+  useEffect(() => { if (!secondVisible || reduced) return; const timer = window.setTimeout(() => setFlipped((state) => [state[0], true, state[2]]), 700); return () => window.clearTimeout(timer); }, [secondVisible, reduced]);
+  return <section id="how-it-works" className={styles.section}>
+    <Reveal><p className={styles.eyebrow}>HOW IT WORKS</p><h2>From counter to customer feedback in three steps.</h2><p className={styles.intro}>Tap a card to peek behind it.</p></Reveal>
+    <div className={styles.flipGrid}>
+      <Reveal><FlipCard index="01" title="Add your business" text="Save your business name, type and Google review link." Icon={Store} flipped={flipped[0]} onToggle={() => toggle(0)} hint="Tap to see an example" back={<><img src="/landing/restaurant.webp" alt="" width={800} height={1000} loading="lazy" /><span className={styles.photoShade} /><span className={styles.caption}><b>Your place, your look</b>Sample photo of a restaurant</span></>} /></Reveal>
+      <Reveal delay={0.08}><div ref={secondRef} className={styles.flipHolder}><FlipCard index="02" title="Download your QR card" text="A print-ready card with your name, photo and QR." Icon={Download} flipped={flipped[1]} onToggle={() => toggle(1)} hint="Tap to see a sample card" back={<><img className={styles.contain} src="/landing/sample-qr-bold.jpg" alt="Sample QR card for a café" width={840} height={1134} loading="lazy" /><span className={styles.sampleTag}>Sample card</span></>} /></div></Reveal>
+      <Reveal delay={0.16}><FlipCard index="03" title="Watch the activity" text="See scans and your Google rating in one dashboard." Icon={LineChart} flipped={flipped[2]} onToggle={() => toggle(2)} hint="Tap to see a sample dashboard" back={<MiniDashboard />} /></Reveal>
+    </div>
+  </section>;
+}
+
+function ScanDemo() {
   const [scanned, setScanned] = useState(false); const [scans, setScans] = useState(12); const reduced = useReducedMotion();
-  useEffect(() => { if (!scanned) return; const timer = window.setTimeout(() => setScanned(false), 2800); return () => window.clearTimeout(timer); }, [scanned]);
-  return <section className={styles.demo} aria-label="Sample QR scan demonstration"><span className={styles.sample}>Sample data</span><div className={styles.phoneWrap}><div className={styles.phone}><div className={styles.phoneTop} /><AnimatePresence mode="wait">{scanned ? <motion.div key="review" className={styles.reviewScreen} initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }}><b>G</b><strong>Leave a review</strong><p>Your feedback helps this local business.</p><div>{Array.from({ length: 5 }, (_, index) => <Star key={index} />)}</div><button>Write a review</button></motion.div> : <motion.div key="qr" className={styles.qrScreen} initial={{ opacity: 0 }} animate={{ opacity: 1 }}><p>Scan to share feedback</p><div className={styles.qr}>{Array.from({ length: 49 }, (_, index) => <i key={index} className={index % 3 === 0 || [1, 2, 7, 8, 14, 15, 41, 42].includes(index) ? styles.dark : ""} />)}</div><small>Opens your saved Google review page</small></motion.div>}</AnimatePresence>{scanned && !reduced ? <motion.i className={styles.scanLine} initial={{ top: "22%" }} animate={{ top: "77%" }} transition={{ duration: .7 }} /> : null}</div><button className={styles.scanButton} onClick={() => { if (!scanned) { setScanned(true); setScans(value => value + 1); } }} disabled={scanned}><ScanLine />{scanned ? "Scan recorded" : "Simulate a scan"}</button><AnimatePresence>{scanned ? <motion.span className={styles.toast} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><Check />Scan recorded</motion.span> : null}</AnimatePresence></div><div className={styles.demoPanel}><div className={styles.demoHead}><div><span>Total scans</span><strong>{scans}</strong></div><em><i />Sample event</em></div><div className={styles.bars}>{[25, 38, 33, 54, 48, 67, scanned ? 86 : 61].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className={styles.activity}><span>Recent activity</span><AnimatePresence initial={false}>{scanned ? <motion.p key="new" initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }}><Check />Just now · QR scan recorded</motion.p> : <p><QrCode />Sample · QR scan activity appears here</p>}</AnimatePresence></div></div></section>;
+  useEffect(() => { if (!scanned) return; const timer = window.setTimeout(() => setScanned(false), 3200); return () => window.clearTimeout(timer); }, [scanned]);
+  return <section className={styles.section}>
+    <div className={styles.demoGrid}>
+      <Reveal><p className={styles.eyebrow}>TRY IT</p><h2>This is what your customer sees.</h2><p className={styles.intro}>Point a phone at the card. A moment later they are on your Google review page, and you have one more scan in your dashboard.</p><button className={styles.primary} onClick={() => { if (!scanned) { setScanned(true); setScans((value) => value + 1); } }} disabled={scanned}><ScanLine />{scanned ? "Scan recorded" : "Simulate a scan"}</button><p className={styles.fine}>Sample data. A scan counts a visit to your review link, not a finished review.</p></Reveal>
+      <Reveal delay={0.1}><div className={styles.phoneWrap}>
+        <div className={styles.phone}><i className={styles.notch} /><AnimatePresence mode="wait">
+          {scanned ? <motion.div key="review" className={styles.reviewScreen} initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}><b>G</b><strong>Rate your experience</strong><p>Saffron Table</p><div>{Array.from({ length: 5 }, (_, index) => <motion.span key={index} initial={reduced ? false : { scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.15 + index * 0.08, type: "spring", stiffness: 300 }}><Star /></motion.span>)}</div><span className={styles.fakeButton}>Write a review</span></motion.div>
+          : <motion.div key="qr" className={styles.qrScreen} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><img src="/landing/sample-qr.jpg" alt="Sample QR card on a phone camera" width={840} height={1134} loading="lazy" /></motion.div>}
+        </AnimatePresence>{scanned && !reduced ? <motion.i className={styles.scanLine} initial={{ top: "10%" }} animate={{ top: "88%" }} transition={{ duration: 0.9 }} /> : null}</div>
+        <div className={styles.counter}><small>Scans today (sample)</small><b>{scans}</b></div>
+      </div></Reveal>
+    </div>
+  </section>;
+}
+
+function TypePicker() {
+  const [active, setActive] = useState(0); const type = businessTypes[active];
+  const size = 13;
+  const cells = Array.from({ length: size * size }, (_, index) => {
+    const row = Math.floor(index / size), column = index % size;
+    for (const [fr, fc] of [[0, 0], [0, size - 5], [size - 5, 0]]) {
+      const r = row - fr, c = column - fc;
+      if (r >= 0 && r < 5 && c >= 0 && c < 5) return r === 0 || r === 4 || c === 0 || c === 4 || (r === 2 && c === 2);
+      if (r >= -1 && r <= 5 && c >= -1 && c <= 5) return false;
+    }
+    if (Math.abs(row - 6) <= 2 && Math.abs(column - 6) <= 2) return false;
+    return ((row * 31 + column * 17 + row * column * 7 + active * 13) % 5) < 2;
+  });
+  return <section className={styles.section}>
+    <Reveal><p className={styles.eyebrow}>BUILT FOR YOUR BUSINESS</p><h2>Pick a business type. The card follows.</h2><p className={styles.intro}>Your QR card is designed automatically for your type of business, with matching colours, a centre badge and ready-made lines.</p></Reveal>
+    <div className={styles.typeGrid}>
+      <div className={styles.typeList} role="tablist" aria-label="Business types">{businessTypes.map((item, index) => <button key={item.key} role="tab" aria-selected={index === active} className={index === active ? styles.typeOn : ""} onClick={() => setActive(index)} onPointerEnter={() => setActive(index)}><item.Icon />{item.label}</button>)}</div>
+      <div className={styles.typePreview} style={{ "--dark": type.dark, "--accent": type.accent, "--light": type.light } as CSSProperties}>
+        <motion.div key={type.key} className={styles.miniCard} initial={{ opacity: 0, rotateY: -70, scale: 0.92 }} animate={{ opacity: 1, rotateY: 0, scale: 1 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+          <b>YOUR {type.single.toUpperCase()}</b><span className={styles.miniQr}><span className={styles.miniGrid}>{cells.map((on, index) => <i key={index} className={on ? styles.on : ""} />)}</span><span className={styles.badge}><type.Icon /></span></span><em>SCAN &amp; REVIEW</em><small>{type.line}</small>
+        </motion.div>
+        <span className={styles.fine}>Sample preview. Real cards use your business name and photo.</span>
+      </div>
+    </div>
+  </section>;
+}
+
+function Rankings() {
+  const rows = [["Brew Lane", 4.7, 92], ["Your business", 4.6, 88], ["The Corner Cup", 4.5, 84], ["Daily Grind", 4.3, 74], ["Bean Street", 4.1, 66]] as const;
+  return <section className={styles.section}>
+    <div className={styles.rankGrid}>
+      <Reveal><p className={styles.eyebrow}>LOCAL RANKINGS</p><h2>Know where you stand nearby.</h2><p className={styles.intro}>Compare Google ratings and review counts with businesses of your own type within 1, 3 or 5 km. Results come from Google Places and are refreshed daily.</p><ul className={styles.ticks}><li><Check /> Up to 20 nearby businesses</li><li><Check /> Sort by rating, reviews or distance</li><li><Check /> Always your own business type</li></ul></Reveal>
+      <Reveal delay={0.1}><div className={styles.rankCard}><span className={styles.tag}>Sample data</span>{rows.map(([name, rating, width], index) => <div key={name} className={`${styles.rankRow} ${name === "Your business" ? styles.me : ""}`}><span className={styles.rankNo}>{index === 0 ? <Trophy /> : index + 1}</span><b>{name}</b><span className={styles.bar}><motion.i initial={{ width: 0 }} whileInView={{ width: `${width}%` }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.15 + index * 0.1, ease: "easeOut" }} /></span><em>{rating.toFixed(1)}</em></div>)}</div></Reveal>
+    </div>
+  </section>;
 }
 
 export default function MarketingSite() {
-  const [annual, setAnnual] = useState(false); const [openFaq, setOpenFaq] = useState(0); const reduced = useReducedMotion();
-  return <main className={styles.site}><header className={styles.nav}><Link href="/" className={styles.logo}><span>✦</span> PrimeReviews</Link><nav><a href="#how-it-works">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav><div><Link href="/login">Log in</Link><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link></div></header>
-    <section className={styles.hero}><Reveal><p className={styles.eyebrow}><Sparkles /> REVIEW COLLECTION, WITHOUT THE AWKWARD ASK</p><h1>Happy customers don&apos;t leave reviews.<br /><em>Scan, tap, done.</em></h1><p className={styles.heroCopy}>Create one QR code that sends customers directly to your Google review page and shows you every scan.</p><div className={styles.heroButtons}><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link><a className={styles.secondary} href="#how-it-works">See how it works</a></div><p className={styles.assurance}><Check />No credit card. Set up in 2 minutes.</p></Reveal><SampleScanDemo /></section>
-    <section id="how-it-works" className={styles.section}><Reveal><p className={styles.eyebrow}>HOW IT WORKS</p><h2>From counter to customer feedback in three simple steps.</h2></Reveal><div className={styles.steps}>{steps.map(([number, title, text], index) => <Reveal key={number} delay={index * .08}><article className={styles.step}><span>{number}</span><div>{index === 0 ? <Store /> : index === 1 ? <Download /> : <LineChart />}</div><h3>{title}</h3><p>{text}</p></article></Reveal>)}</div></section>
-    <section className={styles.placements} aria-label="Suggested QR placements"><div>{[...placements, ...placements].map((placement, index) => <span key={`${placement}-${index}`}><i>{index % 2 ? "⌁" : "✦"}</i>{placement}</span>)}</div></section>
-    <section id="features" className={styles.section}><Reveal><p className={styles.eyebrow}>THE BASICS, DONE WELL</p><h2>Everything you need to make review collection easier.</h2><p className={styles.intro}>No invented estimates, no complicated setup. Just a clear review link, a QR code, and your scan activity.</p></Reveal><div className={styles.features}>{features.map(([Icon, title, text, comingSoon], index) => <Reveal key={title} delay={(index % 4) * .06}><article className={styles.feature}><div><Icon /></div>{comingSoon ? <span>Coming soon</span> : null}<h3>{title}</h3><p>{text}</p></article></Reveal>)}</div></section>
-    <section id="pricing" className={`${styles.section} ${styles.pricing}`}><Reveal><p className={styles.eyebrow}>PRICING</p><h2>Start simple. Decide the details when you&apos;re ready.</h2><div className={styles.toggle}><button aria-pressed={!annual} onClick={() => setAnnual(false)}>Monthly</button><button aria-pressed={annual} onClick={() => setAnnual(true)}>Yearly <small>Save later</small></button></div></Reveal><div className={styles.plans}>{pricingPlans.map((plan, index) => <Reveal key={plan.name} delay={index * .08}><article className={`${styles.plan} ${plan.featured ? styles.featured : ""}`}>{plan.featured ? <b>Recommended</b> : null}<h3>{plan.name}</h3><p>{plan.description}</p><strong>{plan.price}<small>{plan.price === "₹0" ? "/ month" : ""}</small></strong><ul>{plan.features.map(feature => <li key={feature}><Check />{feature}</li>)}</ul>{plan.comingSoon ? <button disabled>Coming soon</button> : <Link className={plan.featured ? styles.primary : styles.secondary} href="/signup">{plan.cta}</Link>}</article></Reveal>)}</div><p className={styles.note}>{annual ? "Yearly billing is a future option; prices above remain editable before launch." : "Prices are placeholders and can be edited in lib/marketing-config.ts before launch."}</p></section>
-    <section id="faq" className={`${styles.section} ${styles.faqs}`}><Reveal><p className={styles.eyebrow}>FAQ</p><h2>Clear answers before you get started.</h2></Reveal><div>{faqs.map(([question, answer], index) => <article key={question}><button aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>{question}<ChevronDown /></button><AnimatePresence initial={false}>{openFaq === index ? <motion.p initial={reduced ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduced ? undefined : { height: 0, opacity: 0 }}>{answer}</motion.p> : null}</AnimatePresence></article>)}</div></section>
-    <section className={styles.cta}><Reveal><p className={styles.eyebrow}>READY WHEN YOU ARE</p><h2>Make the next happy customer moment count.</h2><p>Create a QR code that always points to your current Google review link.</p><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link></Reveal></section>
-    <footer className={styles.footer}><Link href="/" className={styles.logo}><span>✦</span> PrimeReviews</Link><div><a href="#features">Product</a><a href="#how-it-works">Resources</a><a href="#faq">FAQ</a><a href="#pricing">Pricing</a></div><p>© {new Date().getFullYear()} PrimeReviews. All rights reserved.</p></footer>
+  const [openFaq, setOpenFaq] = useState(0); const reduced = useReducedMotion(); const siteRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll(); const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24 });
+  useEffect(() => {
+    const node = siteRef.current; if (!node || reduced || !window.matchMedia("(pointer: fine)").matches) return;
+    let frame = 0; const move = (event: PointerEvent) => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => { node.style.setProperty("--cx", `${event.clientX}px`); node.style.setProperty("--cy", `${event.clientY}px`); }); };
+    window.addEventListener("pointermove", move, { passive: true }); return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(frame); };
+  }, [reduced]);
+  return <main ref={siteRef} className={styles.site}>
+    <motion.i className={styles.progress} style={{ scaleX: progress }} aria-hidden="true" />
+    <div className={styles.aurora} aria-hidden="true"><i /><i /><i /></div><div className={styles.grid} aria-hidden="true" /><div className={styles.cursor} aria-hidden="true" />
+    <header className={styles.nav}><Link href="/" className={styles.logo}><span>✦</span> PrimeReviews</Link><nav aria-label="Main"><a href="#how-it-works">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav><div><Link href="/login">Log in</Link><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link></div></header>
+    <section className={styles.hero}>
+      <Reveal className={styles.heroText}><p className={styles.eyebrow}><Sparkles /> REVIEWS, WITHOUT THE AWKWARD ASK</p><h1>Turn happy customers into <em>Google reviews</em> with one scan.</h1><p className={styles.heroCopy}>Print a QR card made for your business. Customers scan it and land on your Google review page, and you see every scan and your rating in one dashboard.</p><div className={styles.heroButtons}><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link><a className={styles.secondary} href="#how-it-works">See how it works</a></div><p className={styles.assurance}><Check /> Free in early access. No credit card. Ready in minutes.</p></Reveal>
+      <Reveal delay={0.15} className={styles.heroArt}><TiltCard /></Reveal>
+    </section>
+    <section className={styles.facts} aria-label="Product facts"><Reveal><div><b><CountUp to={11} /></b><span>business types</span></div><div><b><CountUp to={4} /></b><span>card designs</span></div><div><b><CountUp to={50} suffix="+" /></b><span>ready-made lines per type</span></div><div><b><CountUp to={80} /> KB</b><span>max photo storage</span></div></Reveal></section>
+    <HowItWorks />
+    <ScanDemo />
+    <TypePicker />
+    <section id="features" className={styles.section}><Reveal><p className={styles.eyebrow}>EVERYTHING YOU NEED</p><h2>The essentials of review collection, done well.</h2><p className={styles.intro}>Only what works today is promised here. What is still on the way is marked.</p></Reveal><div className={styles.bento}>{features.map((feature, index) => <Reveal key={feature.title} delay={(index % 4) * 0.05} className={"wide" in feature && feature.wide ? styles.wide : ""}><article className={styles.feature} onPointerMove={glowMove}><div><feature.Icon /></div>{"soon" in feature && feature.soon ? <span className={styles.soon}>Coming soon</span> : null}<h3>{feature.title}</h3><p>{feature.text}</p></article></Reveal>)}</div></section>
+    <Rankings />
+    <section id="pricing" className={styles.section}><Reveal><p className={styles.eyebrow}>PRICING</p><h2>Free while we are in early access.</h2><p className={styles.intro}>No prices have been set for paid plans yet. We will tell you before anything changes.</p></Reveal><div className={styles.plans}>{pricingPlans.map((plan, index) => <Reveal key={plan.name} delay={index * 0.08}><article className={`${styles.plan} ${plan.featured ? styles.featured : ""}`} onPointerMove={glowMove}>{plan.featured ? <b className={styles.recommended}>Available now</b> : null}<h3>{plan.name}</h3><p>{plan.description}</p><strong>{plan.price}<small>{plan.period}</small></strong><ul>{plan.features.map((item) => <li key={item}><Check />{item}</li>)}</ul>{plan.comingSoon ? <button className={styles.secondary} disabled>Coming soon</button> : <Link className={styles.primary} href="/signup">{plan.cta} <ArrowRight /></Link>}</article></Reveal>)}</div></section>
+    <section id="faq" className={`${styles.section} ${styles.faqs}`}><Reveal><p className={styles.eyebrow}>FAQ</p><h2>Honest answers before you start.</h2></Reveal><div className={styles.faqList}>{faqs.map(([question, answer], index) => <article key={question} className={openFaq === index ? styles.open : ""}><button aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>{question}<ChevronDown /></button><AnimatePresence initial={false}>{openFaq === index ? <motion.div className={styles.answer} initial={reduced ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduced ? undefined : { height: 0, opacity: 0 }} transition={{ duration: 0.3 }}><p>{answer}</p></motion.div> : null}</AnimatePresence></article>)}</div></section>
+    <section className={styles.cta}><Reveal><p className={styles.eyebrow}>READY WHEN YOU ARE</p><h2>Make the next happy customer count.</h2><p>Create your QR card in minutes. Free while we are in early access.</p><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link></Reveal></section>
+    <footer className={styles.footer}><Link href="/" className={styles.logo}><span>✦</span> PrimeReviews</Link><div><a href="#how-it-works">How it works</a><a href="#features">Features</a><a href="#faq">FAQ</a><Link href="/login">Log in</Link><Link href="/signup">Sign up</Link></div><p>© {new Date().getFullYear()} PrimeReviews. A scan is a visit to your review link, not a finished review.</p></footer>
   </main>;
 }
