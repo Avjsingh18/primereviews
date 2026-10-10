@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, trackingUrl } from "@/lib/api";
-import { asCategory, normaliseRenderHash, renderStudioCard, verifyQrImage } from "@/lib/qr-studio";
+import { asCategory, normaliseRenderHash, verifyQrImage } from "@/lib/qr-studio";
+import { renderStudioCard } from "@/lib/qr-card";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { safeRoute } from "@/lib/security/http";
 

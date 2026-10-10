@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
 import sharp from "sharp";
-import { asCategory, cleanDisplayText, normaliseRenderHash, optimisePhoto, qrStudioThemes, renderStudioCard, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
+import { printable, renderStudioCard } from "./qr-card";
+import { asCategory, cleanDisplayText, normaliseRenderHash, optimisePhoto, qrStudioThemes, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
 
 test("uses the supplied static categories and a stable default tagline", () => {
   assert.equal(asCategory("plant_nurseries"), "plant_nurseries");
@@ -50,4 +51,14 @@ test("accepts the .png render URL suffix without weakening hash validation", () 
   assert.equal(normaliseRenderHash(`${hash}.png`), hash);
   assert.equal(normaliseRenderHash(hash), hash);
   assert.equal(normaliseRenderHash("not-a-render"), null);
+});
+
+test("every curated tagline can be drawn with the bundled card font", () => {
+  for (const category of Object.keys(qrStudioThemes) as Array<keyof typeof qrStudioThemes>) for (const tone of ["funny", "friendly", "professional"] as const) for (const line of studioTaglines(category, tone)) assert.equal(printable(line, 500), line, `${category}/${tone}: "${line}" has characters the card font cannot draw`);
+});
+
+test("renders long business names without clipping and keeps the QR scannable", async () => {
+  const url = "https://reviewflow.example/r/long-name";
+  const result = await renderStudioCard({ businessName: "The Grind House Coffee Roasters & Bakery", trackingUrl: url, category: "cafes", variantIndex: 1, tagline: "Loved your coffee? Tell the world", bwMode: false });
+  await verifyQrImage(result.image, url);
 });
