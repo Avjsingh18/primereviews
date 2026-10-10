@@ -47,3 +47,12 @@ export async function enforceLimit(request: NextRequest, scope: string, limit: n
 export async function publicRequestLimit(request: NextRequest) {
   await Promise.all([enforceLimit(request, "public-api-global", 1500, 60, "all"), enforceLimit(request, "public-api-ip", 120, 60)]);
 }
+
+// Every abuse-prevention key that is derived from one user (by account id, business id or email), so deleting an account
+// can remove them. Keys derived only from an IP address cannot be tied to a user and expire by themselves.
+export function userRateLimitKeys(userId: string, email: string | null, businessIds: string[]) {
+  const keys = ["account-read", "account-write", "change-password", "delete-account", "competitors-user", "qr-design-user", "qr-studio-background", "qr-studio-design"].map((scope) => privateHash(`${scope}:${userId}`));
+  for (const id of businessIds) keys.push(privateHash(`qr-studio-photo:${id}`));
+  if (email) for (const scope of ["login", "signup"]) keys.push(privateHash(`${scope}:${email.trim().toLowerCase()}`));
+  return keys;
+}

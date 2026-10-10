@@ -3,8 +3,8 @@ import { error, requireUser } from "@/lib/api";
 import { supabaseAdmin, supabasePublic } from "@/lib/supabase/server";
 import { json, readJson, safeRoute } from "@/lib/security/http";
 import { clearSessionCookie } from "@/lib/security/session";
-import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
-import { deleteAccountData } from "@/lib/account-deletion";
+import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey, userRateLimitKeys } from "@/lib/rate-limit";
+import { deleteAccountData, type DeletionClient } from "@/lib/account-deletion";
 
 // Permanently deletes the signed-in user's account and all of their data after re-checking their password.
 export const POST = safeRoute(async (request: NextRequest) => {
@@ -20,7 +20,8 @@ export const POST = safeRoute(async (request: NextRequest) => {
   const { data: checked, error: checkError } = await supabasePublic().auth.signInWithPassword({ email: auth.user.email, password });
   if (checkError || !checked.session || checked.user?.id !== auth.user.id) return error("That password is incorrect.", 401);
   try {
-    await deleteAccountData(supabaseAdmin(), auth.user.id);
+    const userId = auth.user.id; const email = auth.user.email;
+    await deleteAccountData(supabaseAdmin() as unknown as DeletionClient, { userId, email, rateLimitKeys: (businessIds) => userRateLimitKeys(userId, email, businessIds) });
   } catch {
     return error("We couldn’t finish deleting your account. Nothing further has been shared; please try again.", 503);
   }

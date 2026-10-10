@@ -108,3 +108,7 @@ label select,.settings-card select{display:block;width:100%;padding:12px 14px;ma
 .danger-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 .settings-card .danger-check{display:flex;align-items:flex-start;gap:10px;margin-top:14px;font-size:13px;font-weight:500;line-height:1.5}
 .settings-card .danger-check input[type=checkbox]{flex:none;width:18px;height:18px;margin:2px 0 0;padding:0;accent-color:#c62f4d}
+
+.settings-card.danger-zone .muted{margin:8px 0 20px;line-height:1.6}
+.settings-card.danger-zone>.danger-button{margin-top:0}
+.settings-card.danger-zone form{margin-top:4px}

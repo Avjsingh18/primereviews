@@ -75,7 +75,7 @@ export default function PrivacyPage() {
       <tr><td>Sign-in sessions</td><td>Up to 7 days, or until you sign out or change your password</td></tr>
       <tr><td>Abuse-prevention hashes</td><td>Deleted after about 2 days of inactivity</td></tr>
       <tr><td>Google results cache</td><td>Up to 24 hours</td></tr>
-      <tr><td>Provider logs and backups</td><td>Held by our providers for a limited period under their own policies</td></tr>
+      <tr><td>Provider logs and backups</td><td>Held by our providers for a limited period under their own policies. When you delete your account we also ask our sign-in provider to erase its sign-in event records for you; any copies that remain in provider logs or backups are overwritten over time</td></tr>
     </tbody></table>
 
     <h2>9. Security</h2>

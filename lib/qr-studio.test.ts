@@ -98,26 +98,59 @@ test("ships a valid ready-made background for every business type", async () => 
   }
 });
 
-function fakeDeletionClient(failOn?: string) {
-  const calls: string[] = [];
-  const client: DeletionClient = {
-    from: (table) => ({ delete: () => ({ eq: async (column, value) => { calls.push(`delete ${table}.${column}=${value}`); return { error: failOn === table ? new Error("boom") : null }; } }) }),
-    storage: { from: (bucket) => ({ list: async () => ({ data: [{ name: "user-1_abc.webp" }, { name: "user-2_def.webp" }] }), remove: async (paths) => { calls.push(`remove ${bucket}:${paths.join(",")}`); return { error: null }; } }) },
-    auth: { admin: { deleteUser: async (id) => { calls.push(`deleteUser ${id}`); return { error: failOn === "auth" ? new Error("boom") : null }; } } },
+type Row = Record<string, string>;
+// A tiny in-memory database with the same relationships as the real one, holding data for two users.
+function fakeDatabase(options: { ignoreDeletesIn?: string; authFails?: boolean } = {}) {
+  const tables: Record<string, Row[]> = {
+    businesses: [{ id: "b1", user_id: "user-1" }, { id: "b2", user_id: "user-2" }],
+    qr_codes: [{ id: "q1", business_id: "b1" }, { id: "q2", business_id: "b2" }],
+    qr_visit_totals: [{ qr_code_id: "q1" }, { qr_code_id: "q1" }, { qr_code_id: "q2" }],
+    qr_scans: [{ qr_code_id: "q1" }, { qr_code_id: "q2" }],
+    review_snapshots: [{ business_id: "b1" }, { business_id: "b2" }],
+    business_photos: [{ business_id: "b1" }, { business_id: "b2" }],
+    qr_studio_designs: [{ business_id: "b1" }, { business_id: "b2" }],
+    app_sessions: [{ user_id: "user-1" }, { user_id: "user-1" }, { user_id: "user-2" }],
+    app_auth_state: [{ user_id: "user-1" }, { user_id: "user-2" }],
+    reviewflow_cache: [{ owner_id: "user-1" }, { owner_id: "user-2" }],
+    ai_jobs: [{ owner_id: "user-1" }],
+    rate_limit_buckets: [{ bucket_key: "k-user-1" }, { bucket_key: "k-ip-only" }],
   };
-  return { client, calls };
+  const users = new Set(["user-1", "user-2"]); const events: string[] = [];
+  const db: DeletionClient = {
+    from: (table) => ({
+      select: (_columns, selectOptions) => ({ in: async (column, values) => { const rows = (tables[table] ?? []).filter((row) => values.includes(row[column])); return selectOptions ? { count: rows.length, error: null } : { data: rows, error: null }; } }),
+      delete: () => ({ in: async (column, values) => { if (options.ignoreDeletesIn !== table) tables[table] = (tables[table] ?? []).filter((row) => !values.includes(row[column])); events.push(`delete ${table}`); return { error: null }; } }),
+    }),
+    rpc: async (name) => { events.push(`rpc ${name}`); return { error: null }; },
+    storage: { from: () => ({ list: async () => ({ data: [{ name: "user-1_a.webp" }, { name: "user-2_b.webp" }] }), remove: async (paths) => { events.push(`remove ${paths.join(",")}`); return { error: null }; } }) },
+    auth: { admin: { deleteUser: async (id) => { events.push("deleteUser"); if (options.authFails) return { error: new Error("boom") }; users.delete(id); return { error: null }; }, getUserById: async (id) => ({ data: { user: users.has(id) ? { id } : null }, error: null }) } },
+  };
+  return { db, tables, users, events };
 }
+const deletionOptions = { userId: "user-1", email: "owner@example.com", rateLimitKeys: () => ["k-user-1"] };
 
-test("account deletion removes sessions, cache, business data and the sign-in account, and only this user's files", async () => {
-  const { client, calls } = fakeDeletionClient();
-  await deleteAccountData(client, "user-1");
-  assert.deepEqual(calls, ["remove qr-artwork:user-1_abc.webp", "delete app_sessions.user_id=user-1", "delete reviewflow_cache.owner_id=user-1", "delete businesses.user_id=user-1", "deleteUser user-1"]);
+test("account deletion removes every row belonging to the user, and only that user's rows", async () => {
+  const { db, tables, users, events } = fakeDatabase();
+  await deleteAccountData(db, deletionOptions);
+  for (const [table, rows] of Object.entries(tables)) {
+    const mine = rows.filter((row) => Object.values(row).some((value) => ["user-1", "b1", "q1", "k-user-1"].includes(value)));
+    assert.equal(mine.length, 0, `${table} still holds data for the deleted user`);
+  }
+  assert.equal(tables.businesses.length, 1); assert.equal(tables.qr_codes.length, 1); assert.equal(tables.qr_visit_totals.length, 1); assert.equal(tables.app_sessions.length, 1);
+  assert.equal(tables.rate_limit_buckets.length, 1, "keys not tied to the user must stay");
+  assert.ok(users.has("user-2") && !users.has("user-1"));
+  assert.ok(events.includes("remove user-1_a.webp") && !events.some((event) => event.includes("user-2_b")), "only this user's artwork files are removed");
+  assert.ok(events.includes("rpc security_erase_user_traces"));
+  assert.equal(events[events.length - 1], "deleteUser", "the sign-in account is removed last");
 });
 
-test("account deletion stops and reports failure instead of pretending it finished", async () => {
-  for (const failing of ["businesses", "auth"]) {
-    const { client, calls } = fakeDeletionClient(failing);
-    await assert.rejects(() => deleteAccountData(client, "user-1"));
-    if (failing === "businesses") assert.ok(!calls.some((call) => call.startsWith("deleteUser")), "the sign-in account must not be deleted if data deletion failed");
-  }
+test("account deletion refuses to finish, and keeps the sign-in account, if data is still there", async () => {
+  const { db, users } = fakeDatabase({ ignoreDeletesIn: "business_photos" });
+  await assert.rejects(() => deleteAccountData(db, deletionOptions), /business_photos/);
+  assert.ok(users.has("user-1"), "the account must remain so the user can try again");
+});
+
+test("account deletion reports failure when the sign-in account cannot be removed", async () => {
+  const { db } = fakeDatabase({ authFails: true });
+  await assert.rejects(() => deleteAccountData(db, deletionOptions), /sign-in account/);
 });
