@@ -26,7 +26,7 @@ export const GET = safeRoute(async (request: NextRequest, context: { params: Pro
     const output = await renderStudioCard({ businessName: business.name, trackingUrl: trackingUrl(request, qr.tracking_slug), category: asCategory(design.category_slug), variantIndex: design.variant_index, tagline: design.tagline_source === "custom" ? design.tagline_custom : design.tagline_id, bwMode: design.bw_mode, photo: readBytea(photo?.data) || undefined, photoPalette: photo?.palette || null });
     await verifyQrImage(output.image, trackingUrl(request, qr.tracking_slug));
     cache.set(hash, output.image); image = output.image;
-    if (cache.size > 20) cache.delete(cache.keys().next().value as string);
+    if (cache.size > 12) cache.delete(cache.keys().next().value as string);
   }
-  return new NextResponse(image!, { headers: { "Content-Type": "image/png", "Cache-Control": "private, max-age=2592000, immutable", "ETag": `\"${hash}\"` } });
+  return new NextResponse(image!, { headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=2592000, immutable", "ETag": `\"${hash}\"` } });
 });

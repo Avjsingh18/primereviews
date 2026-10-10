@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { Check, Crosshair, Link2, Lock, LogOut, MapPin, Save } from "lucide-react";
 import ReputationShell from "./reputation-shell";
+import { BUSINESS_TYPES, isBusinessType, type BusinessType } from "@/lib/business-types";
 
 const api = "";
 
 export default function Settings() {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  const [category, setCategory] = useState<BusinessType>("other");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [locating, setLocating] = useState(false);
@@ -19,7 +21,7 @@ export default function Settings() {
 
   useEffect(() => {
     fetch(`${api}/api/business`, { headers: headers() }).then((response) => response.json()).then((business) => {
-      setName(business.name ?? ""); setUrl(business.googleReviewUrl ?? "");
+      setName(business.name ?? ""); setUrl(business.googleReviewUrl ?? ""); if (isBusinessType(business.category)) setCategory(business.category);
       setLatitude(business.latitude == null ? "" : String(business.latitude)); setLongitude(business.longitude == null ? "" : String(business.longitude));
     }).catch(() => setError("Please sign in again."));
   }, []);
@@ -38,7 +40,7 @@ export default function Settings() {
     event.preventDefault(); setMessage(""); setError("");
     const parsedLatitude = Number(latitude); const parsedLongitude = Number(longitude);
     if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude) || parsedLatitude < -90 || parsedLatitude > 90 || parsedLongitude < -180 || parsedLongitude > 180) return setError("Enter a valid business location.");
-    const response = await fetch(`${api}/api/business`, { method:"PUT", headers:headers(), body:JSON.stringify({ name, googleReviewUrl:url, latitude:parsedLatitude, longitude:parsedLongitude }) });
+    const response = await fetch(`${api}/api/business`, { method:"PUT", headers:headers(), body:JSON.stringify({ name, googleReviewUrl:url, category, latitude:parsedLatitude, longitude:parsedLongitude }) });
     if (!response.ok) return setError("Enter a valid Google review URL and business location.");
     setMessage("Business details and location saved."); setSavedToast(true);
     window.setTimeout(() => setSavedToast(false), 3500);
@@ -63,7 +65,7 @@ export default function Settings() {
   }
 
   return <ReputationShell title="Account settings" description="Keep your review link, business location, Google connection, and account secure."><div className="settings">{savedToast ? <div className="settings-toast" role="status"><Check />Your details are saved.</div> : null}{error ? <p className="form-error">{error}</p> : null}{message ? <p className="settings-success"><Check />{message}</p> : null}
-    <section className="card settings-card"><h2>Business details</h2><form onSubmit={business}><label>Business name<input value={name} onChange={(event) => setName(event.target.value)} required /></label><label>Google review URL<input value={url} onChange={(event) => setUrl(event.target.value)} required type="url" /></label><div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:18 }}><div><b style={{ fontSize:13 }}>Business location</b><p className="muted" style={{ marginTop:4 }}>Used for your local competitor radius.</p></div><button type="button" className="outline" onClick={requestLocation} disabled={locating}><Crosshair />{locating ? "Finding…" : "Use my location"}</button></div><div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}><label>Latitude<input type="number" inputMode="decimal" value={latitude} onChange={(event) => setLatitude(event.target.value)} required /></label><label>Longitude<input type="number" inputMode="decimal" value={longitude} onChange={(event) => setLongitude(event.target.value)} required /></label></div><p className="muted" style={{ fontSize:12, marginTop:10 }}><MapPin style={{ width:14, verticalAlign:"-2px" }} /> Coordinates are used only to search Google Places within your selected nearby radius.</p><button className="button"><Save />Save business details</button></form></section>
+    <section className="card settings-card"><h2>Business details</h2><form onSubmit={business}><label>Business name<input value={name} onChange={(event) => setName(event.target.value)} required /></label><label>Business type<select value={category} onChange={(event) => setCategory(event.target.value as BusinessType)}>{BUSINESS_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label><label>Google review URL<input value={url} onChange={(event) => setUrl(event.target.value)} required type="url" /></label><div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginTop:18 }}><div><b style={{ fontSize:13 }}>Business location</b><p className="muted" style={{ marginTop:4 }}>Used for your local competitor radius.</p></div><button type="button" className="outline" onClick={requestLocation} disabled={locating}><Crosshair />{locating ? "Finding…" : "Use my location"}</button></div><div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}><label>Latitude<input type="number" inputMode="decimal" value={latitude} onChange={(event) => setLatitude(event.target.value)} required /></label><label>Longitude<input type="number" inputMode="decimal" value={longitude} onChange={(event) => setLongitude(event.target.value)} required /></label></div><p className="muted" style={{ fontSize:12, marginTop:10 }}><MapPin style={{ width:14, verticalAlign:"-2px" }} /> Coordinates are used only to search Google Places within your selected nearby radius.</p><button className="button"><Save />Save business details</button></form></section>
     <section className="card settings-card"><h2>Change password</h2><form onSubmit={password}><label>Current password<input name="current" required type="password" autoComplete="current-password" /></label><label>New password<input name="new" required minLength={12} maxLength={72} type="password" autoComplete="new-password" /></label><label>Confirm new password<input name="confirm" required minLength={12} maxLength={72} type="password" autoComplete="new-password" /></label><button className="outline"><Lock />Update password</button></form></section>
     <section className="card settings-card"><h2>Google Business Profile</h2><p className="muted">Connect the Google account that manages this business to sync reviews and publish owner-approved replies.</p><button className="outline" disabled title="Google OAuth has not been configured yet"><Link2 />Connect Google Business Profile</button><p className="muted" style={{ fontSize:12, marginTop:12 }}>OAuth setup is required before this connection can be enabled.</p></section>
     <section className="card settings-card"><h2>Session</h2><p className="muted">Sign out to revoke this browser’s session immediately.</p><button type="button" className="outline" onClick={logout}><LogOut />Log out</button></section>

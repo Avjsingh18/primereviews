@@ -32,11 +32,20 @@ test("renders and decodes a high-correction QR Studio card", async () => {
   await verifyQrImage(result.image, url);
 });
 
-test("keeps every selectable visual variation scannable", async () => {
+test("offers four distinct designs for every business type and keeps each scannable", async () => {
   const url = "https://reviewflow.example/r/variation-test";
-  const renders = await Promise.all(Array.from({ length: 12 }, (_, variantIndex) => renderStudioCard({ businessName: "Desi Tadka", trackingUrl: url, category: "restaurants", variantIndex, tagline: "Loved the food? Tell us!", bwMode: false })));
-  assert.equal(new Set(renders.map((result) => crypto.createHash("sha256").update(result.image).digest("hex"))).size, 12);
-  for (const result of renders) await verifyQrImage(result.image, url);
+  for (const category of Object.keys(qrStudioThemes) as Array<keyof typeof qrStudioThemes>) {
+    const renders = await Promise.all(Array.from({ length: 4 }, (_, variantIndex) => renderStudioCard({ businessName: "Desi Tadka", trackingUrl: url, category, variantIndex, tagline: "Loved the food? Tell us!", bwMode: false })));
+    assert.equal(new Set(renders.map((result) => crypto.createHash("sha256").update(result.image).digest("hex"))).size, 4, `${category} designs must differ`);
+    for (const result of renders) await verifyQrImage(result.image, url);
+  }
+});
+
+test("renders JPEG output and a scannable black-and-white card", async () => {
+  const url = "https://reviewflow.example/r/bw";
+  const result = await renderStudioCard({ businessName: "Desi Tadka", trackingUrl: url, category: "restaurants", variantIndex: 0, tagline: "Loved the food? Tell us!", bwMode: true });
+  assert.equal((await sharp(result.image).metadata()).format, "jpeg");
+  await verifyQrImage(result.image, url);
 });
 
 test("keeps the optimised photo dimensions used by the database contract", async () => {
@@ -46,9 +55,10 @@ test("keeps the optimised photo dimensions used by the database contract", async
   assert.equal(photo.height, 960);
 });
 
-test("accepts the .png render URL suffix without weakening hash validation", () => {
+test("accepts the .jpg and .png render URL suffixes without weakening hash validation", () => {
   const hash = "a".repeat(64);
   assert.equal(normaliseRenderHash(`${hash}.png`), hash);
+  assert.equal(normaliseRenderHash(`${hash}.jpg`), hash);
   assert.equal(normaliseRenderHash(hash), hash);
   assert.equal(normaliseRenderHash("not-a-render"), null);
 });
@@ -59,6 +69,6 @@ test("every curated tagline can be drawn with the bundled card font", () => {
 
 test("renders long business names without clipping and keeps the QR scannable", async () => {
   const url = "https://reviewflow.example/r/long-name";
-  const result = await renderStudioCard({ businessName: "The Grind House Coffee Roasters & Bakery", trackingUrl: url, category: "cafes", variantIndex: 1, tagline: "Loved your coffee? Tell the world", bwMode: false });
+  const result = await renderStudioCard({ businessName: "The Grind House Coffee Roasters & Bakery", trackingUrl: url, category: "cafes", variantIndex: 2, tagline: "Loved your coffee? Tell the world", bwMode: false });
   await verifyQrImage(result.image, url);
 });

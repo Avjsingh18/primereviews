@@ -8,6 +8,9 @@ export const QR_STUDIO_LEGACY_FLAG = "QR_LEGACY_ARTWORK_ENABLED";
 export const QR_STUDIO_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const QR_STUDIO_MAX_REQUEST_BYTES = 6 * 1024 * 1024;
 export const QR_STUDIO_MAX_TAGLINE_LENGTH = 60;
+export const QR_STUDIO_DESIGN_COUNT = 4;
+// Bump when the card renderer changes so cached renders (and stored render hashes) are replaced.
+export const QR_STUDIO_RENDER_VERSION = 3;
 
 export type QrStudioCategory =
   | "cafes" | "restaurants" | "hotels" | "pg" | "salons" | "clinics"
@@ -62,7 +65,7 @@ export function validateCustomTagline(value: unknown) {
 export function configHash(value: unknown) { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 export function escapeXml(value: string) { return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character] ?? character); }
 export function normaliseRenderHash(value: string) {
-  const hash = value.endsWith(".png") ? value.slice(0, -4) : value;
+  const hash = value.endsWith(".png") || value.endsWith(".jpg") ? value.slice(0, -4) : value;
   return /^[a-f0-9]{64}$/i.test(hash) ? hash : null;
 }
 

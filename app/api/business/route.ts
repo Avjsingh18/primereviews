@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, isGoogleReviewUrl, requireUser, slugify, trackingUrl } from "@/lib/api";
 import { readJson, safeRoute } from "@/lib/security/http";
+import { isBusinessType, type BusinessType } from "@/lib/business-types";
+import { supabaseAdmin } from "@/lib/supabase/server";
 
 type Location = { latitude: number; longitude: number };
-type Business = { id: string; name: string; slug: string; google_review_url: string; latitude: number | null; longitude: number | null };
-type BusinessBase = Omit<Business, "latitude" | "longitude">;
+type Business = { id: string; name: string; slug: string; google_review_url: string; latitude: number | null; longitude: number | null; category: BusinessType };
+type BusinessBase = Omit<Business, "latitude" | "longitude" | "category">;
 
 function validInput(body: unknown) {
-  const input = body as { name?: unknown; googleReviewUrl?: unknown; latitude?: unknown; longitude?: unknown } | null;
+  const input = body as { name?: unknown; googleReviewUrl?: unknown; latitude?: unknown; longitude?: unknown; category?: unknown } | null;
   const name = typeof input?.name === "string" ? input.name.trim() : "";
   const googleReviewUrl = typeof input?.googleReviewUrl === "string" ? input.googleReviewUrl.trim() : "";
   if (!isGoogleReviewUrl(googleReviewUrl)) return null;
@@ -22,23 +24,31 @@ function validInput(body: unknown) {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
     location = { latitude, longitude };
   }
-  return name && name.length <= 160 ? { name, googleReviewUrl, location } : null;
+  if (input?.category !== undefined && !isBusinessType(input.category)) return null;
+  const category = isBusinessType(input?.category) ? input.category : undefined;
+  return name && name.length <= 160 ? { name, googleReviewUrl, location, category } : null;
 }
 
 async function responseForBusiness(request: NextRequest, supabase: ReturnType<typeof import("@/lib/supabase/server").supabaseAdmin>, business: Business) {
   const { data: qr } = await supabase.from("qr_codes").select("tracking_slug").eq("business_id", business.id).eq("active", true).maybeSingle();
   return NextResponse.json({
     id: business.id, name: business.name, slug: business.slug, googleReviewUrl: business.google_review_url,
-    latitude: business.latitude, longitude: business.longitude,
+    latitude: business.latitude, longitude: business.longitude, category: business.category,
     trackingUrl: qr ? trackingUrl(request, qr.tracking_slug) : null,
   });
+}
+
+// businesses.category_slug is not in the browser roles' column grants, so the server writes it after ownership is verified.
+async function saveCategory(userId: string, category: BusinessType) {
+  const { error: categoryError } = await supabaseAdmin().from("businesses").update({ category_slug: category }).eq("user_id", userId);
+  if (categoryError) throw categoryError;
 }
 
 const businessFields = "id,name,slug,google_review_url";
 
 async function withLocation(supabase: ReturnType<typeof import("@/lib/supabase/server").supabaseAdmin>, business: BusinessBase): Promise<Business> {
-  const { data, error: locationError } = await supabase.from("businesses").select("latitude,longitude").eq("id", business.id).maybeSingle();
-  return { ...business, latitude: locationError ? null : data?.latitude ?? null, longitude: locationError ? null : data?.longitude ?? null };
+  const { data, error: locationError } = await supabase.from("businesses").select("latitude,longitude,category_slug").eq("id", business.id).maybeSingle();
+  return { ...business, latitude: locationError ? null : data?.latitude ?? null, longitude: locationError ? null : data?.longitude ?? null, category: isBusinessType(data?.category_slug) ? data.category_slug : "other" };
 }
 
 export const GET = safeRoute(async (request: NextRequest) => {
@@ -58,6 +68,7 @@ export const POST = safeRoute(async (request: NextRequest) => {
     ...(input.location ? { ...input.location, location_updated_at: new Date().toISOString() } : {}),
   }).select(businessFields).single();
   if (insertError || !business) return error("We couldn’t save your business.");
+  if (input.category) await saveCategory(auth.user.id, input.category);
   return responseForBusiness(request, auth.supabase, await withLocation(auth.supabase, business as BusinessBase));
 });
 
@@ -69,5 +80,6 @@ export const PUT = safeRoute(async (request: NextRequest) => {
     ...(input.location ? { ...input.location, location_updated_at: new Date().toISOString() } : {}),
   }).eq("user_id", auth.user.id).select(businessFields).single();
   if (updateError || !business) return error("We couldn’t update your business.", 404);
+  if (input.category) await saveCategory(auth.user.id, input.category);
   return responseForBusiness(request, auth.supabase, await withLocation(auth.supabase, business as BusinessBase));
 });
