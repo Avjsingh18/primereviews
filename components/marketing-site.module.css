@@ -18,14 +18,14 @@
 .nav a{color:var(--mute);font-size:13.5px;font-weight:600;text-decoration:none;transition:color .2s}
 .nav nav a:hover,.nav>div>a:first-child:hover{color:var(--violet)}
 .primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:13px 20px;font:700 14px/1 inherit;text-decoration:none;cursor:pointer;transition:transform .2s,box-shadow .2s,background .2s}
-.primary{position:relative;background:linear-gradient(135deg,#ff6a3d,#ffa63d);color:#fff!important;box-shadow:0 10px 30px rgba(255,106,61,.4),inset 0 1px 0 rgba(255,255,255,.3)}
+.primary{position:relative;background:linear-gradient(135deg,#c93610,#e45f1c);color:#fff!important;box-shadow:0 10px 30px rgba(255,106,61,.4),inset 0 1px 0 rgba(255,255,255,.3)}
 .primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 16px 38px rgba(255,106,61,.55),inset 0 1px 0 rgba(255,255,255,.3)}
 .primary:disabled{opacity:.6;cursor:default}
 .primary svg{width:16px;height:16px}
 .secondary{border:1px solid var(--line);background:rgba(255,255,255,.72);color:var(--ink)!important;backdrop-filter:blur(8px)}
 .secondary:hover:not(:disabled){background:rgba(255,255,255,.72);transform:translateY(-2px)}
 .secondary:disabled{opacity:.55;cursor:default}
-.eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 16px;color:var(--violet);font-size:11.5px;font-weight:800;letter-spacing:.18em}
+.eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 16px;color:#c0401a;font-size:11.5px;font-weight:800;letter-spacing:.18em}
 .eyebrow svg{width:14px;height:14px}
 .site h1,.site h2,.site h3{margin:0;font-family:inherit}
 .site h2{font-size:clamp(2rem,4.2vw,3.2rem);letter-spacing:-.025em;line-height:1.1;max-width:760px}
@@ -69,12 +69,12 @@
 .flip:focus-visible{outline:2px solid var(--cyan);outline-offset:4px;border-radius:26px}
 .face{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;border-radius:26px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .front{padding:30px;border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.72),rgba(255,255,255,.025));box-shadow:0 24px 60px rgba(90,50,20,.18)}
-.front em{font-style:normal;color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.2em}
+.front em{font-style:normal;color:#0b7d74;font-size:12px;font-weight:800;letter-spacing:.2em}
 .front i{display:grid;place-items:center;width:62px;height:62px;margin:26px 0 22px;border-radius:18px;background:linear-gradient(135deg,rgba(255,106,61,.35),rgba(14,159,148,.25));box-shadow:0 0 30px rgba(255,106,61,.35)}
 .front i svg{width:28px;height:28px}
 .front strong{font-size:22px;letter-spacing:-.03em}
 .front>span{margin-top:10px;color:var(--mute);font-size:15px;line-height:1.55}
-.front small{display:flex;align-items:center;gap:7px;margin-top:auto;color:var(--cyan);font-size:12.5px;font-weight:700}
+.front small{display:flex;align-items:center;gap:7px;margin-top:auto;color:#0b7d74;font-size:12.5px;font-weight:700}
 .front small svg{width:14px;height:14px;animation:spin 3.5s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .backFace{transform:rotateY(180deg);border:1px solid rgba(31,27,46,.13);background:#0b0f26;box-shadow:0 24px 60px rgba(90,50,20,.2),0 0 50px rgba(255,106,61,.25)}
@@ -84,8 +84,7 @@
 .sampleTag{position:absolute;top:12px;right:12px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.88);color:#4a4560;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .caption{position:absolute;left:18px;right:18px;bottom:16px;display:grid;gap:3px;color:#4a4560;font-size:12px;text-shadow:0 2px 12px rgba(0,0,0,.8)}
 .caption b{color:#fff;font-size:16px;letter-spacing:-.02em}
-.dash{display:flex;flex-direction:column;gap:16px;height:100%;padding:26px;background:linear-gradient(160deg,#10163a,#0a0e24)}
-.dashTop{display:flex;justify-content:space-between;align-items:baseline}
+.dash{display:flex;flex-direction:column;gap:16px;height:100%;padding:26px;background:linear-gradient(160deg,#ffffff,#fff1e6);justify-content:space-between;align-items:baseline}
 .dashTop b{font-size:15px}.dashTop small{color:var(--mute);font-size:12px}
 .dashStats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .dashStats>span{display:grid;gap:3px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.72)}
@@ -121,7 +120,7 @@
 .typeList button{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.72);color:var(--mute);font:600 14px inherit;cursor:pointer;transition:all .2s}
 .typeList button svg{width:17px;height:17px}
 .typeList button:hover{color:var(--ink);border-color:rgba(31,27,46,.13)}
-.typeList button.typeOn{border-color:transparent;background:linear-gradient(135deg,#ff6a3d,#ffa63d);color:#fff;box-shadow:0 8px 26px rgba(255,106,61,.35)}
+.typeList button.typeOn{border-color:transparent;background:linear-gradient(135deg,#c93610,#e45f1c);color:#fff;box-shadow:0 8px 26px rgba(255,106,61,.35)}
 .typePreview{display:grid;justify-items:center;gap:6px;perspective:1000px}
 .miniCard{display:grid;justify-items:center;gap:14px;width:min(100%,300px);padding:26px 22px 22px;border-radius:28px;background:linear-gradient(160deg,var(--accent),var(--dark));box-shadow:0 30px 70px rgba(90,50,20,.24),0 0 60px color-mix(in srgb,var(--accent) 45%,transparent);color:#fff;transition:background .3s}
 .miniCard b{font-size:15px;letter-spacing:.14em;text-align:center}
@@ -158,7 +157,7 @@
 .feature>div svg{width:22px;height:22px}
 .feature h3{font-size:18px;letter-spacing:-.025em}
 .feature p{margin:8px 0 0;color:var(--mute);font-size:14.5px;line-height:1.55}
-.soon{position:absolute!important;top:20px;right:20px;padding:4px 10px;border-radius:999px;background:rgba(251,191,36,.15);color:#fbbf24;font-size:10.5px;font-weight:800}
+.soon{position:absolute!important;top:20px;right:20px;padding:4px 10px;border-radius:999px;background:rgba(251,191,36,.15);color:#8a5200;font-size:10.5px;font-weight:800}
 
 .plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;max-width:860px;margin-top:44px}
 .plan{--gx:50%;--gy:0;position:relative;overflow:hidden;height:100%;padding:32px;border:1px solid var(--line);border-radius:26px;background:rgba(255,255,255,.72)}
@@ -216,3 +215,4 @@
   .flipInner{transition:none}.flip:hover:not(.isFlipped) .flipInner{transform:none}
   .dashPath{stroke-dashoffset:0;animation:none!important}.dashBars i{height:var(--h);animation:none!important}
 }
+.dashTop{width:100%}
