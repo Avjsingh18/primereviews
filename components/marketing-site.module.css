@@ -216,3 +216,5 @@
   .dashPath{stroke-dashoffset:0;animation:none!important}.dashBars i{height:var(--h);animation:none!important}
 }
 .dashTop{width:100%}
+
+.facts>p{margin:14px 0 0;color:#847e98;font-size:12px;text-align:center}

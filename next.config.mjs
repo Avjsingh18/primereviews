@@ -5,6 +5,8 @@ const mockApi = process.env.UI_MOCK_API === "true" && process.env.NODE_ENV !== "
 
 const nextConfig = {
   output: "standalone",
+  // The ready-made QR backgrounds are read from disk by this route, so they must ship with its serverless bundle.
+  outputFileTracingIncludes: { "/api/qr-studio/background": ["./lib/qr-backgrounds/**/*"] },
   ...(mockApi ? { async rewrites() { return { beforeFiles: [{ source: "/api/:path*", destination: `http://localhost:${process.env.UI_MOCK_PORT || 3101}/api/:path*` }], afterFiles: [], fallback: [] }; } } : {}),
   async headers() {
     return [{

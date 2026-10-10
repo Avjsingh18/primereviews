@@ -89,3 +89,5 @@ label select,.settings-card select{display:block;width:100%;padding:12px 14px;ma
 .auth-aside .auth-stat strong,.auth-aside .auth-stat span{color:#fff!important;opacity:1!important}
 .auth-aside .auth-proof .proof-star{color:#d93f16!important;text-shadow:none!important}
 .empty-state .status{color:#8a5200}
+
+.studio-photo-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 6px}.studio-photo-actions>*{margin:0!important}.studio-ai{display:inline-flex;align-items:center;gap:8px;cursor:pointer}.studio-ai svg{width:17px;height:17px;color:#e0522a}

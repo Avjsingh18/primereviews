@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 import sharp from "sharp";
 import { printable, renderStudioCard } from "./qr-card";
@@ -82,4 +84,15 @@ test("keeps the photo's colour instead of turning the QR black on dark photos", 
   assert.ok(red > green && green >= blue && red >= 60, `dark colour ${palette.dark} should be a deep warm tone, not black`);
   const grey = await sharp({ create: { width: 100, height: 100, channels: 3, background: "#777777" } }).png().toBuffer();
   assert.deepEqual(await derivePhotoPalette(grey, fallback), fallback);
+});
+
+test("ships a valid ready-made background for every business type", async () => {
+  for (const category of Object.keys(qrStudioThemes)) {
+    const bytes = fs.readFileSync(path.join(process.cwd(), "lib", "qr-backgrounds", `${category}.webp`));
+    const meta = await sharp(bytes).metadata();
+    assert.ok(bytes.length <= 80 * 1024, `${category} background must fit the 80 KB photo limit`);
+    assert.equal(meta.format, "webp"); assert.equal(meta.width, 720); assert.equal(meta.height, 960);
+    const palette = await derivePhotoPalette(bytes, { dark: "#111111", accent: "#222222", light: "#ffffff" });
+    assert.match(palette.dark, /^#[0-9a-f]{6}$/);
+  }
 });

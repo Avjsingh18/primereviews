@@ -56,15 +56,17 @@ function glowMove(event: ReactPointerEvent<HTMLElement>) {
   event.currentTarget.style.setProperty("--gy", `${event.clientY - box.top}px`);
 }
 
-function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
+function CountUp({ to, suffix = "", prefix = "", decimals = 0 }: { to: number; suffix?: string; prefix?: string; decimals?: number }) {
   const ref = useRef<HTMLSpanElement>(null); const inView = useInView(ref, { once: true, amount: 0.6 }); const reduced = useReducedMotion();
+  const show = (value: number) => `${prefix}${value.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${suffix}`;
   useEffect(() => {
     if (!inView || !ref.current) return;
-    if (reduced) { ref.current.textContent = `${to}${suffix}`; return; }
-    const controls = animate(0, to, { duration: 1.6, ease: "easeOut", onUpdate: (value) => { if (ref.current) ref.current.textContent = `${Math.round(value)}${suffix}`; } });
+    if (reduced) { ref.current.textContent = show(to); return; }
+    const controls = animate(0, to, { duration: 1.8, ease: "easeOut", onUpdate: (value) => { if (ref.current) ref.current.textContent = show(value); } });
     return () => controls.stop();
-  }, [inView, reduced, to, suffix]);
-  return <span ref={ref}>{reduced ? `${to}${suffix}` : `0${suffix}`}</span>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, reduced, to, suffix, prefix, decimals]);
+  return <span ref={ref}>{reduced ? show(to) : show(0)}</span>;
 }
 
 function TiltCard() {
@@ -85,8 +87,9 @@ function TiltCard() {
   </div>;
 }
 
-function FlipCard({ index, title, text, Icon, flipped, onToggle, back, hint }: { index: string; title: string; text: string; Icon: typeof Store; flipped: boolean; onToggle: () => void; back: ReactNode; hint: string }) {
-  return <button type="button" className={`${styles.flip} ${flipped ? styles.isFlipped : ""}`} onClick={onToggle} aria-pressed={flipped} aria-label={`${title}. ${flipped ? "Showing the preview. Press to go back." : hint}`}>
+function FlipCard({ index, title, text, Icon, flipped, onToggle, onHover, back, hint }: { index: string; title: string; text: string; Icon: typeof Store; flipped: boolean; onToggle: () => void; onHover: (hovering: boolean) => void; back: ReactNode; hint: string }) {
+  // Mouse hover turns the card over; touch and keyboard users tap or press it instead.
+  return <button type="button" className={`${styles.flip} ${flipped ? styles.isFlipped : ""}`} onClick={onToggle} onPointerEnter={(event) => { if (event.pointerType === "mouse") onHover(true); }} onPointerLeave={(event) => { if (event.pointerType === "mouse") onHover(false); }} aria-pressed={flipped} aria-label={`${title}. ${flipped ? "Showing the preview. Press to go back." : hint}`}>
     <span className={styles.flipInner}>
       <span className={`${styles.face} ${styles.front}`} aria-hidden={flipped}><em>{index}</em><i><Icon /></i><strong>{title}</strong><span>{text}</span><small><RotateCw /> {hint}</small></span>
       <span className={`${styles.face} ${styles.backFace}`} aria-hidden={!flipped}>{back}</span>
@@ -106,17 +109,19 @@ function MiniDashboard() {
 
 function HowItWorks() {
   const reduced = useReducedMotion();
-  const [flipped, setFlipped] = useState([false, false, false]);
+  const [pinned, setPinned] = useState([false, false, false]); const [hovered, setHovered] = useState([false, false, false]);
+  const flipped = pinned.map((value, index) => value || hovered[index]);
   const secondRef = useRef<HTMLDivElement>(null); const secondVisible = useInView(secondRef, { once: true, amount: 0.7 });
-  const toggle = (index: number) => setFlipped((state) => state.map((value, position) => position === index ? !value : value));
+  const toggle = (index: number) => setPinned((state) => state.map((value, position) => position === index ? !value : value));
+  const hover = (index: number, value: boolean) => setHovered((state) => state.map((current, position) => position === index ? value : current));
   // The QR card flips by itself the first time it scrolls into view, then stays under the visitor's control.
-  useEffect(() => { if (!secondVisible || reduced) return; const timer = window.setTimeout(() => setFlipped((state) => [state[0], true, state[2]]), 700); return () => window.clearTimeout(timer); }, [secondVisible, reduced]);
+  useEffect(() => { if (!secondVisible || reduced) return; const timer = window.setTimeout(() => setPinned((state) => [state[0], true, state[2]]), 700); return () => window.clearTimeout(timer); }, [secondVisible, reduced]);
   return <section id="how-it-works" className={styles.section}>
-    <Reveal><p className={styles.eyebrow}>HOW IT WORKS</p><h2>From counter to customer feedback in three steps.</h2><p className={styles.intro}>Tap a card to peek behind it.</p></Reveal>
+    <Reveal><p className={styles.eyebrow}>HOW IT WORKS</p><h2>From counter to customer feedback in three steps.</h2><p className={styles.intro}>Hover or tap a card to peek behind it.</p></Reveal>
     <div className={styles.flipGrid}>
-      <Reveal><FlipCard index="01" title="Add your business" text="Save your business name, type and Google review link." Icon={Store} flipped={flipped[0]} onToggle={() => toggle(0)} hint="Tap to see an example" back={<><img src="/landing/restaurant.webp" alt="" width={800} height={1000} loading="lazy" /><span className={styles.photoShade} /><span className={styles.caption}><b>Your place, your look</b>Sample photo of a restaurant</span></>} /></Reveal>
-      <Reveal delay={0.08}><div ref={secondRef} className={styles.flipHolder}><FlipCard index="02" title="Download your QR card" text="A print-ready card with your name, photo and QR." Icon={Download} flipped={flipped[1]} onToggle={() => toggle(1)} hint="Tap to see a sample card" back={<><img className={styles.contain} src="/landing/sample-qr-bold.jpg" alt="Sample QR card for a café" width={840} height={1134} loading="lazy" /><span className={styles.sampleTag}>Sample card</span></>} /></div></Reveal>
-      <Reveal delay={0.16}><FlipCard index="03" title="Watch the activity" text="See scans and your Google rating in one dashboard." Icon={LineChart} flipped={flipped[2]} onToggle={() => toggle(2)} hint="Tap to see a sample dashboard" back={<MiniDashboard />} /></Reveal>
+      <Reveal><FlipCard index="01" title="Add your business" text="Save your business name, type and Google review link." Icon={Store} flipped={flipped[0]} onToggle={() => toggle(0)} onHover={(value) => hover(0, value)} hint="Tap to see an example" back={<><img src="/landing/restaurant.webp" alt="" width={800} height={1000} loading="lazy" /><span className={styles.photoShade} /><span className={styles.caption}><b>Your place, your look</b>Sample photo of a restaurant</span></>} /></Reveal>
+      <Reveal delay={0.08}><div ref={secondRef} className={styles.flipHolder}><FlipCard index="02" title="Download your QR card" text="A print-ready card with your name, photo and QR." Icon={Download} flipped={flipped[1]} onToggle={() => toggle(1)} onHover={(value) => hover(1, value)} hint="Tap to see a sample card" back={<><img className={styles.contain} src="/landing/sample-qr-bold.jpg" alt="Sample QR card for a café" width={840} height={1134} loading="lazy" /><span className={styles.sampleTag}>Sample card</span></>} /></div></Reveal>
+      <Reveal delay={0.16}><FlipCard index="03" title="Watch the activity" text="See scans and your Google rating in one dashboard." Icon={LineChart} flipped={flipped[2]} onToggle={() => toggle(2)} onHover={(value) => hover(2, value)} hint="Tap to see a sample dashboard" back={<MiniDashboard />} /></Reveal>
     </div>
   </section>;
 }
@@ -191,7 +196,7 @@ export default function MarketingSite() {
       <Reveal className={styles.heroText}><p className={styles.eyebrow}><Sparkles /> REVIEWS, WITHOUT THE AWKWARD ASK</p><h1>Turn happy customers into <em>Google reviews</em> with one scan.</h1><p className={styles.heroCopy}>Print a QR card made for your business. Customers scan it and land on your Google review page, and you see every scan and your rating in one dashboard.</p><div className={styles.heroButtons}><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link><a className={styles.secondary} href="#how-it-works">See how it works</a></div><p className={styles.assurance}><Check /> Free in early access. No credit card. Ready in minutes.</p></Reveal>
       <Reveal delay={0.15} className={styles.heroArt}><TiltCard /></Reveal>
     </section>
-    <section className={styles.facts} aria-label="Product facts"><Reveal><div><b><CountUp to={11} /></b><span>business types</span></div><div><b><CountUp to={4} /></b><span>card designs</span></div><div><b><CountUp to={50} suffix="+" /></b><span>ready-made lines per type</span></div><div><b><CountUp to={80} /> KB</b><span>max photo storage</span></div></Reveal></section>
+    <section className={styles.facts} aria-label="Sample dashboard numbers"><Reveal><div><b><CountUp to={2480} /></b><span>QR scans this month</span></div><div><b><CountUp to={1284} /></b><span>Google reviews</span></div><div><b><CountUp to={4.8} decimals={1} /></b><span>average rating</span></div><div><b><CountUp to={126} prefix="+" /></b><span>new reviews this month</span></div></Reveal><p>Sample numbers, to show the kind of growth your dashboard tracks.</p></section>
     <HowItWorks />
     <Rankings />
     <ScanDemo />

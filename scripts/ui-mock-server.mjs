@@ -69,6 +69,7 @@ const server = http.createServer(async (req, res) => {
   if (route.startsWith("/api/analytics/")) { const o = overview(url); return send(res, 200, { series: route.endsWith("scans") ? o.scans : route.endsWith("rating") ? o.ratings : o.reviews }); }
   if (route === "/api/benchmark") { const body = await readBody(req); return send(res, 200, benchmark(body.radiusKm || 3)); }
   if (route === "/api/qr-studio/taglines") { const tone = url.searchParams.get("tone") || "friendly"; return send(res, 200, { category: state.business.category, tone, taglines: taglines(state.business.category, tone) }); }
+  if (route === "/api/qr-studio/background") { state.photo = true; state.design.version++; return send(res, 200, { bytes: 52000, palette: {}, source: "background" }); }
   if (route === "/api/qr-studio/photo") { if (method === "POST") { state.photo = true; state.design.version++; return send(res, 200, { bytes: 43000, palette: {} }); } state.photo = false; state.design.version++; return send(res, 200, { removed: true }); }
   if (route.startsWith("/api/qr-studio/render/")) {
     const file = path.join(root, "public/landing", state.business.category === "cafes" || state.design.variantIndex >= 2 ? "sample-qr-bold.jpg" : "sample-qr.jpg");

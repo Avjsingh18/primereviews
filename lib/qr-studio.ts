@@ -10,7 +10,7 @@ export const QR_STUDIO_MAX_REQUEST_BYTES = 6 * 1024 * 1024;
 export const QR_STUDIO_MAX_TAGLINE_LENGTH = 60;
 export const QR_STUDIO_DESIGN_COUNT = 4;
 // Bump when the card renderer changes so cached renders (and stored render hashes) are replaced.
-export const QR_STUDIO_RENDER_VERSION = 4;
+export const QR_STUDIO_RENDER_VERSION = 5;
 
 export type QrStudioCategory =
   | "cafes" | "restaurants" | "hotels" | "pg" | "salons" | "clinics"
