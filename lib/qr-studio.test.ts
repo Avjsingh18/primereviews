@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import test from "node:test";
 import sharp from "sharp";
-import { asCategory, cleanDisplayText, normaliseRenderHash, optimisePhoto, renderStudioCard, stableTagline, validateCustomTagline, verifyQrImage } from "./qr-studio";
+import { asCategory, cleanDisplayText, normaliseRenderHash, optimisePhoto, qrStudioThemes, renderStudioCard, stableTagline, studioTaglines, validateCustomTagline, verifyQrImage } from "./qr-studio";
 
 test("uses the supplied static categories and a stable default tagline", () => {
   assert.equal(asCategory("plant_nurseries"), "plant_nurseries");
   assert.equal(asCategory("not-a-category"), "other");
   assert.equal(stableTagline("cafes", "1"), stableTagline("cafes", "1"));
+});
+
+test("provides at least 50 curated taglines for every QR Studio category", () => {
+  for (const category of (Object.keys(qrStudioThemes) as Array<keyof typeof qrStudioThemes>).filter((value) => value !== "other")) {
+    const total = studioTaglines(category, "funny").length + studioTaglines(category, "friendly").length + studioTaglines(category, "professional").length;
+    assert.ok(total >= 50, `${category} must have at least 50 taglines`);
+  }
 });
 
 test("sanitises custom taglines and blocks review incentives", () => {
@@ -21,6 +29,13 @@ test("renders and decodes a high-correction QR Studio card", async () => {
   const result = await renderStudioCard({ businessName: "R. Serto Nursery", trackingUrl: url, category: "plant_nurseries", variantIndex: 3, tagline: "Help our little nursery grow", bwMode: false });
   assert.ok(result.image.length > 10_000);
   await verifyQrImage(result.image, url);
+});
+
+test("keeps every selectable visual variation scannable", async () => {
+  const url = "https://reviewflow.example/r/variation-test";
+  const renders = await Promise.all(Array.from({ length: 12 }, (_, variantIndex) => renderStudioCard({ businessName: "Desi Tadka", trackingUrl: url, category: "restaurants", variantIndex, tagline: "Loved the food? Tell us!", bwMode: false })));
+  assert.equal(new Set(renders.map((result) => crypto.createHash("sha256").update(result.image).digest("hex"))).size, 12);
+  for (const result of renders) await verifyQrImage(result.image, url);
 });
 
 test("keeps the optimised photo dimensions used by the database contract", async () => {

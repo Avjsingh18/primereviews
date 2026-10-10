@@ -85,6 +85,24 @@ function iconSvg(category: QrStudioCategory, index: number, color: string) {
   return `<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="${glyph}" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
+function badgeArtwork(category: QrStudioCategory, dark: string, accent: string, light: string) {
+  const paths: Record<QrStudioCategory, string> = {
+    cafes: '<path d="M28 47h45V76H28zM73 54h12c10 0 10 17 0 17H73M38 31c-5 7 5 11 0 18M55 31c-5 7 5 11 0 18"/>',
+    restaurants: '<path d="M24 64h56M31 62c2-23 40-23 43 0M39 41c-5-7 4-11 0-18M53 41c-5-7 4-11 0-18M67 41c-5-7 4-11 0-18"/>',
+    hotels: '<path d="M24 75V39h56v36M34 39V27h36v12M36 55h9M55 55h9M24 75h56"/>',
+    pg: '<path d="M25 49 52 26l27 23v28H25zM46 77V59h12v18M65 55h5"/>',
+    salons: '<path d="M29 31 75 77M75 31 29 77M25 27l10 10M69 27l-10 10"/>',
+    clinics: '<path d="M45 24h14v16h16v14H59v16H45V54H29V40h16z"/>',
+    coaching_centres: '<path d="M26 33c16-8 28-5 34 1 8-5 19-6 27-1v40c-9-5-19-3-27 2-8-5-18-7-34-2zM60 34v41"/>',
+    plant_nurseries: '<path d="M52 78V49M52 63c-22 0-25-19-19-28 18 3 21 16 19 28M53 55c5-18 18-20 28-15-3 18-14 22-28 15"/>',
+    day_care: '<path d="M31 55c0-13 10-24 23-24s23 11 23 24-10 24-23 24-23-11-23-24zM43 55h1M64 55h1M47 66c4 3 8 3 12 0"/>',
+    preschools: '<path d="M29 74V37h50v37M29 37l25-16 25 16M43 74V57h22v17"/>',
+    gyms: '<path d="M22 48v16M31 42v28M40 48h40M78 42v28M87 48v16"/>',
+    other: '<path d="M53 22 61 45l23 8-23 8-8 23-8-23-23-8 23-8z"/>',
+  };
+  return `<svg width="124" height="124" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg"><circle cx="54" cy="54" r="51" fill="${light}" stroke="${accent}" stroke-width="6"/><path d="${paths[category].match(/d="([^"]+)"/)?.[1] || ""}" fill="none" stroke="${dark}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
 export type StudioRenderInput = { businessName: string; trackingUrl: string; category: QrStudioCategory; variantIndex: number; tagline: string; bwMode: boolean; photo?: Buffer; photoPalette?: { dark?: string; accent?: string; light?: string } | null };
 export async function renderStudioCard(input: StudioRenderInput) {
   const theme = qrStudioThemes[input.category];
@@ -92,17 +110,26 @@ export async function renderStudioCard(input: StudioRenderInput) {
   const name = cleanDisplayText(input.businessName, 60) ?? "Your business";
   const tagline = cleanDisplayText(input.tagline, QR_STUDIO_MAX_TAGLINE_LENGTH) ?? "Tell us about your experience";
   const qr = await QRCode.toBuffer(input.trackingUrl, { width: 620, margin: 4, errorCorrectionLevel: "H", color: { dark: palette.dark, light: palette.light } });
-  const layout = input.variantIndex % 6;
-  const offset = [0, 70, -60, 110, 35, -90][layout];
+  // Twelve visibly distinct, deterministic layouts. They do not rely on an image model.
+  const layout = input.variantIndex % 12;
+  const panelY = [465, 500, 440, 535, 480, 510, 450, 525, 470, 545, 490, 430][layout];
+  const panelRadius = [56, 90, 36, 72][layout % 4];
+  const panelX = layout % 3 === 1 ? 105 : layout % 3 === 2 ? 150 : 130;
+  const panelWidth = layout % 3 === 1 ? 990 : layout % 3 === 2 ? 900 : 940;
+  const panelHeight = 875;
   const background = input.bwMode ? sharp({ create: { width: 1200, height: 1800, channels: 4, background: palette.light } }) : input.photo
-    ? sharp(input.photo).resize(1200, 1800, { fit: "cover" }).modulate({ brightness: 0.45 }).blur(2)
+    ? sharp(input.photo).resize(1200, 1800, { fit: "cover" }).modulate({ brightness: 0.56, saturation: 0.92 }).blur(1.2)
     : sharp({ create: { width: 1200, height: 1800, channels: 4, background: palette.light } });
-  const overlay = `<svg width="1200" height="1800" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${palette.accent}" stop-opacity="${input.photo ? ".44" : ".92"}"/><stop offset="1" stop-color="${palette.dark}" stop-opacity="${input.photo ? ".48" : ".97"}"/></linearGradient></defs><rect width="1200" height="1800" fill="url(#g)"/>${Array.from({ length: 10 }, (_, index) => `<g transform="translate(${80 + (index % 4) * 310} ${120 + Math.floor(index / 4) * 650}) rotate(${index * 22})" opacity=".32">${pattern(input.category, palette.light)}</g>`).join("")}</svg>`;
-  const panelY = 480 + offset;
+  const overlay = `<svg width="1200" height="1800" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${palette.accent}" stop-opacity="${input.photo ? ".38" : ".91"}"/><stop offset="1" stop-color="${palette.dark}" stop-opacity="${input.photo ? ".64" : ".98"}"/></linearGradient></defs><rect width="1200" height="1800" fill="url(#g)"/>${Array.from({ length: 12 }, (_, index) => `<g transform="translate(${70 + (index % 4) * 320} ${80 + Math.floor(index / 4) * 610}) rotate(${(index + layout) * 19})" opacity=".26">${pattern(input.category, palette.light)}</g>`).join("")}</svg>`;
   const titleLines = splitText(name, 23);
   const taglineLines = splitText(tagline, 34);
-  const panel = `<svg width="1200" height="1800" xmlns="http://www.w3.org/2000/svg"><rect x="130" y="${panelY}" width="940" height="920" rx="52" fill="${palette.light}"/><rect x="142" y="${panelY + 12}" width="916" height="896" rx="42" fill="none" stroke="${palette.accent}" stroke-width="8"/><g transform="translate(570 ${panelY + 58})">${iconSvg(input.category, Math.floor(input.variantIndex / 2), palette.accent)}</g><text x="600" y="${panelY - 120}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${titleLines.length === 1 ? 74 : 60}" font-weight="700" fill="${input.bwMode ? "#000" : palette.light}">${titleLines.map((line, index) => `<tspan x="600" dy="${index ? 72 : 0}">${escapeXml(line)}</tspan>`).join("")}</text><text x="600" y="${panelY + 800}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${taglineLines.length === 1 ? 38 : 32}" fill="${palette.dark}">${taglineLines.map((line, index) => `<tspan x="600" dy="${index ? 42 : 0}">${escapeXml(line)}</tspan>`).join("")}</text><rect x="440" y="${panelY + 835}" width="320" height="56" rx="28" fill="${palette.accent}"/><text x="600" y="${panelY + 873}" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="${palette.light}">SCAN &amp; REVIEW</text></svg>`;
-  const image = await background.composite([{ input: Buffer.from(overlay), top: 0, left: 0 }, { input: Buffer.from(panel), top: 0, left: 0 }, { input: qr, top: panelY + 140, left: 290 }]).png({ compressionLevel: 9, palette: true }).toBuffer();
+  const badge = Buffer.from(badgeArtwork(input.category, palette.dark, palette.accent, palette.light));
+  const brandedQr = await sharp(qr).composite([{ input: badge, top: 248, left: 248 }]).png().toBuffer();
+  const topY = layout % 2 === 0 ? 175 : 225;
+  const ctaY = 1470;
+  const panel = `<svg width="1200" height="1800" xmlns="http://www.w3.org/2000/svg"><rect x="${panelX}" y="${panelY}" width="${panelWidth}" height="${panelHeight}" rx="${panelRadius}" fill="${palette.light}" fill-opacity=".985"/><rect x="${panelX + 13}" y="${panelY + 13}" width="${panelWidth - 26}" height="${panelHeight - 26}" rx="${Math.max(18, panelRadius - 12)}" fill="none" stroke="${palette.accent}" stroke-width="8"/><text x="600" y="${topY}" text-anchor="middle" font-family="sans-serif" font-size="${titleLines.length === 1 ? 88 : 68}" font-weight="700" letter-spacing="2" fill="${input.bwMode ? "#000" : palette.light}">${titleLines.map((line, index) => `<tspan x="600" dy="${index ? 78 : 0}">${escapeXml(line)}</tspan>`).join("")}</text><text x="600" y="${panelY + 88}" text-anchor="middle" font-family="sans-serif" font-size="26" font-weight="700" letter-spacing="4" fill="${palette.accent}">${escapeXml(theme.label.toUpperCase())}</text><rect x="${panelX + (panelWidth - 680) / 2}" y="${panelY + 132}" width="680" height="680" rx="38" fill="${palette.light}" stroke="${palette.accent}" stroke-width="10"/><text x="600" y="${panelY + 830}" text-anchor="middle" font-family="sans-serif" font-size="${taglineLines.length === 1 ? 43 : 35}" font-weight="600" fill="${palette.dark}">${taglineLines.map((line, index) => `<tspan x="600" dy="${index ? 43 : 0}">${escapeXml(line)}</tspan>`).join("")}</text><rect x="315" y="${ctaY}" width="570" height="108" rx="54" fill="${palette.dark}"/><text x="600" y="${ctaY + 71}" text-anchor="middle" font-family="sans-serif" font-size="42" font-weight="700" letter-spacing="1" fill="${palette.light}">SCAN &amp; REVIEW</text></svg>`;
+  const qrX = Math.round(panelX + (panelWidth - 620) / 2);
+  const image = await background.composite([{ input: Buffer.from(overlay), top: 0, left: 0 }, { input: Buffer.from(panel), top: 0, left: 0 }, { input: brandedQr, top: panelY + 162, left: qrX }]).png({ compressionLevel: 9, palette: true }).toBuffer();
   return { image, palette, qr };
 }
 
