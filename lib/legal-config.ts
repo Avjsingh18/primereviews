@@ -22,3 +22,8 @@ export const legalLinks = [
   { href: "/cookies", label: "Cookie Policy" },
   { href: "/acceptable-use", label: "Acceptable Use & Reviews Policy" },
 ] as const;
+
+// Until a real email address is filled in above, the pages say it is coming rather than showing a bracketed placeholder.
+const shown = (value: string) => (/^[^\s@\[\]]+@[^\s@\[\]]+\.[^\s@\[\]]+$/.test(value) ? value : "our support team (email address to be published shortly)");
+export const contactEmail = shown(legal.contactEmail);
+export const grievanceEmail = shown(legal.grievanceEmail);

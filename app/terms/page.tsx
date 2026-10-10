@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/legal-page";
-import { legal } from "@/lib/legal-config";
+import { legal, contactEmail } from "@/lib/legal-config";
 
 export const metadata: Metadata = { title: "Terms of Service · PrimeReviews", description: "The terms that apply when you use PrimeReviews." };
 
@@ -79,6 +79,6 @@ export default function TermsPage() {
     </ul>
 
     <h2>21. Contact</h2>
-    <p>{legal.operator}, {legal.address}. Email: {legal.contactEmail}.</p>
+    <p>{legal.operator}, {legal.address}. Email: {contactEmail}.</p>
   </LegalPage>;
 }

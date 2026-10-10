@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/legal-page";
-import { legal } from "@/lib/legal-config";
+import { legal, contactEmail } from "@/lib/legal-config";
 
 export const metadata: Metadata = { title: "Acceptable Use & Reviews Policy · PrimeReviews", description: "Rules for using PrimeReviews and collecting reviews honestly." };
 
@@ -39,7 +39,7 @@ export default function AcceptableUsePage() {
     </ul>
 
     <h2>5. Reporting problems</h2>
-    <p>To report a misused QR code, content that infringes your rights, or a security issue, email {legal.contactEmail} with enough detail for us to find it. We aim to review reports promptly and may remove content or disable QR codes while we do.</p>
+    <p>To report a misused QR code, content that infringes your rights, or a security issue, email {contactEmail} with enough detail for us to find it. We aim to review reports promptly and may remove content or disable QR codes while we do.</p>
 
     <h2>6. Enforcement</h2>
     <p>If we believe you have broken this policy, we may remove content, disable your QR code, suspend or close your account, and where required report to Google or the authorities. We may act without notice where needed to protect people or the Service. See our <a href="/terms">Terms of Service</a> for more.</p>

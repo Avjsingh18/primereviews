@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/legal-page";
-import { legal } from "@/lib/legal-config";
+import { legal, contactEmail, grievanceEmail } from "@/lib/legal-config";
 
 export const metadata: Metadata = { title: "Privacy Policy · PrimeReviews", description: "How PrimeReviews collects, uses, shares and protects personal data." };
 
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
 
     <h2>10. Your rights</h2>
     <p>Depending on where you live, you may have the right to access your personal data, correct it, have it erased, withdraw consent, nominate someone to exercise your rights if you die or become unable to, object to or restrict certain processing, receive a copy in a portable format and complain to a data protection authority. This includes your rights under India’s Digital Personal Data Protection Act, 2023 and, for people in the European Economic Area or the United Kingdom, the GDPR.</p>
-    <p>You can correct most details and remove your photo in Settings, and you can delete your account and all of your data yourself in Settings under “Delete account” (you will be asked for your password). To exercise any other right, email {legal.contactEmail}. We may need to verify your identity first and will respond within the time the law requires.</p>
+    <p>You can correct most details and remove your photo in Settings, and you can delete your account and all of your data yourself in Settings under “Delete account” (you will be asked for your password). To exercise any other right, email {contactEmail}. We may need to verify your identity first and will respond within the time the law requires.</p>
 
     <h3>Additional information for certain regions</h3>
     <ul>
@@ -103,7 +103,7 @@ export default function PrivacyPage() {
     <p>We may update this policy as the service or the law changes. We will post the new version here with a new effective date and, for material changes, tell you by email or in the dashboard.</p>
 
     <h2>14. Contact and Grievance Officer</h2>
-    <p>For privacy questions or requests, contact {legal.operator}, {legal.address}, email {legal.contactEmail}.</p>
-    <p>Grievance Officer: {legal.grievanceOfficer}, email {legal.grievanceEmail}. We aim to acknowledge complaints promptly and resolve them within the period required by law.</p>
+    <p>For privacy questions or requests, contact {legal.operator}, {legal.address}, email {contactEmail}.</p>
+    <p>Grievance Officer: {legal.grievanceOfficer}, email {grievanceEmail}. We aim to acknowledge complaints promptly and resolve them within the period required by law.</p>
   </LegalPage>;
 }

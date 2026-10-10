@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/legal-page";
-import { legal } from "@/lib/legal-config";
+import { legal, contactEmail } from "@/lib/legal-config";
 
 export const metadata: Metadata = { title: "Cookie Policy · PrimeReviews", description: "The cookies PrimeReviews uses and why." };
 
@@ -25,6 +25,6 @@ export default function CookiesPage() {
     <h2>5. Your choices</h2>
     <p>You can block or delete cookies in your browser settings. If you block the essential cookie you will not be able to stay signed in. For more on how we handle personal data see our <a href="/privacy">Privacy Policy</a>.</p>
     <h2>6. Contact</h2>
-    <p>Questions about cookies: {legal.contactEmail}.</p>
+    <p>Questions about cookies: {contactEmail}.</p>
   </LegalPage>;
 }

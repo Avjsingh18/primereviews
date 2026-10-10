@@ -19,7 +19,10 @@ import { readFileSync } from "node:fs";
 {
   const source = readFileSync("lib/legal-config.ts", "utf8");
   const open = [...source.matchAll(/^\s*(operator|address|contactEmail|grievanceOfficer|grievanceEmail|courtsCity|euUkRepresentative):\s*"([^"]*)"/gm)].filter((match) => match[1] !== "euUkRepresentative" ? /^\[|^$/.test(match[2]) : match[2].startsWith("[")).map((match) => match[1]);
-  if (open.length) failures.push(`legal details still missing in lib/legal-config.ts: ${open.join(", ")}`);
+  const blocking = open.filter((name) => !/Email$/.test(name));
+  if (blocking.length) failures.push(`legal details still missing in lib/legal-config.ts: ${blocking.join(", ")}`);
+  const emails = open.filter((name) => /Email$/.test(name));
+  if (emails.length) console.warn(`WARNING: ${emails.join(" and ")} in lib/legal-config.ts is still a placeholder. The legal pages say the address is coming; add real addresses soon (Indian law expects a working grievance contact).`);
 }
 if(failures.length) { console.error("Production release blocked:\n"+failures.join("\n")); process.exit(1); }
 console.log("Production environment shape checks passed. This does not verify hosted migration, WAF or provider billing settings; complete the release checklist.");

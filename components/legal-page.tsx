@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { legal, legalLinks } from "@/lib/legal-config";
+import { legal, legalLinks, contactEmail } from "@/lib/legal-config";
 import styles from "./legal.module.css";
 
 export function LegalLinks({ className }: { className?: string }) {
@@ -16,7 +16,7 @@ export default function LegalPage({ title, summary, children }: { title: string;
       <p className={styles.meta}>Effective {legal.effectiveDate} · Version {legal.termsVersion}</p>
       <p className={styles.summary}>{summary}</p>
       {children}
-      <p className={styles.contact}>Questions about this document? Contact {legal.operator} at {legal.contactEmail}.</p>
+      <p className={styles.contact}>Questions about this document? Contact {legal.operator} at {contactEmail}.</p>
     </article>
     <footer className={styles.foot}><LegalLinks className={styles.footLinks} /><p>© {new Date().getFullYear()} {legal.operator}. {legal.productName} is not affiliated with, endorsed by or sponsored by Google.</p></footer>
   </main>;
