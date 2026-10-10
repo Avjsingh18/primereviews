@@ -5,6 +5,7 @@ import { AnimatePresence, animate, motion, useInView, useMotionValue, useReduced
 import { ArrowRight, BarChart3, Baby, BedDouble, Building2, Check, ChevronDown, Coffee, Download, Dumbbell, GraduationCap, HeartPulse, LineChart, MapPin, Backpack, Palette, QrCode, RotateCw, ScanLine, Scissors, ShieldCheck, Sparkles, Sprout, Star, Store, Trophy, UtensilsCrossed } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { pricingPlans } from "@/lib/marketing-config";
+import { legal, legalLinks } from "@/lib/legal-config";
 import styles from "./marketing-site.module.css";
 
 const businessTypes = [
@@ -32,18 +33,17 @@ const features = [
   { Icon: BarChart3, title: "Automated reports", text: "A recurring summary of your activity.", soon: true, wide: true },
 ] as const;
 
-const faqs = [
+const faqs: Array<[string, ReactNode]> = [
   ["Does the QR code really open my Google review page?", "Yes. You paste your Google review link once, and the QR code sends customers to it. You can change the link later in Settings, and the printed code keeps working."],
-  ["Does a scan mean I got a review?", "No. A scan means someone opened your review link. Whether they leave a review is up to them, so we show scans and your Google rating and review count side by side, and we never promise more reviews."],
-  ["Can I give a discount or gift for leaving a review?", "No. Google's policies do not allow rewards in exchange for reviews, and QR Studio blocks taglines that offer them. Ask politely, and make it easy."],
   ["What does the QR card include?", "Your business name, a design chosen for your business type, an optional photo of your place, a centre badge, and a line under the code. Pick from 50+ ready-made lines in funny, friendly or professional styles, or write your own."],
-  ["Is the QR card safe to print?", "Every card is checked to make sure it scans before you download it, and you can switch to a black-and-white version for plain printers. Still, scan your printout with two or three phones before you print many."],
+  ["Is the QR card safe to print?", "Yes. Every card is checked to make sure it scans before you can download it."],
   ["How do the local rankings work?", "We use Google Places to list nearby businesses of your own type within 1, 3 or 5 km, with their Google ratings and review counts. It will not match a Google search exactly, because Google search uses its own relevance rules."],
-  ["Which businesses is it for?", "Restaurants, cafés, hotels, PGs, salons, clinics, coaching centres, plant nurseries, day care, preschools and gyms, plus an Other option. Local rankings are not available for Other."],
+  ["Which businesses is it for?", "Any local business that customers can review on Google. That includes restaurants, clubs, gyms, salons, cafés, hotels, clinics, coaching centres, plant nurseries, day care centres, preschools, PGs and more. Pick the closest type, or choose Other. Local rankings are not available for Other."],
   ["What happens to my customers' data?", "We count scans per day and do not keep customers' IP addresses. Your photo is stripped of metadata and stored compressed, and you can remove it at any time."],
   ["Do I need access to my Google Business Profile?", "No. You only need your public Google review link. A Business Profile connection is on our roadmap, not required today."],
-  ["What does it cost?", "It is free while we are in early access. Paid plans are not priced yet, and we will tell you before anything changes."],
-] as const;
+  ["What does it cost?", <>It is free while we are in early access. See the <a href="#pricing">Pricing</a> section for details.</>],
+  ["Where can I read your terms and privacy policy?", <>Right here: <Link href="/terms">Terms of Service</Link>, <Link href="/privacy">Privacy Policy</Link>, <Link href="/cookies">Cookie Policy</Link> and <Link href="/acceptable-use">Acceptable Use &amp; Reviews Policy</Link>.</>],
+];
 
 function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const reduced = useReducedMotion();
@@ -205,6 +205,6 @@ export default function MarketingSite() {
     <section id="pricing" className={styles.section}><Reveal><p className={styles.eyebrow}>PRICING</p><h2>Free while we are in early access.</h2><p className={styles.intro}>No prices have been set for paid plans yet. We will tell you before anything changes.</p></Reveal><div className={styles.plans}>{pricingPlans.map((plan, index) => <Reveal key={plan.name} delay={index * 0.08}><article className={`${styles.plan} ${plan.featured ? styles.featured : ""}`} onPointerMove={glowMove}>{plan.featured ? <b className={styles.recommended}>Available now</b> : null}<h3>{plan.name}</h3><p>{plan.description}</p><strong>{plan.price}<small>{plan.period}</small></strong><ul>{plan.features.map((item) => <li key={item}><Check />{item}</li>)}</ul>{plan.comingSoon ? <button className={styles.secondary} disabled>Coming soon</button> : <Link className={styles.primary} href="/signup">{plan.cta} <ArrowRight /></Link>}</article></Reveal>)}</div></section>
     <section id="faq" className={`${styles.section} ${styles.faqs}`}><Reveal><p className={styles.eyebrow}>FAQ</p><h2>Honest answers before you start.</h2></Reveal><div className={styles.faqList}>{faqs.map(([question, answer], index) => <article key={question} className={openFaq === index ? styles.open : ""}><button aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>{question}<ChevronDown /></button><AnimatePresence initial={false}>{openFaq === index ? <motion.div className={styles.answer} initial={reduced ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduced ? undefined : { height: 0, opacity: 0 }} transition={{ duration: 0.3 }}><p>{answer}</p></motion.div> : null}</AnimatePresence></article>)}</div></section>
     <section className={styles.cta}><Reveal><p className={styles.eyebrow}>READY WHEN YOU ARE</p><h2>Make the next happy customer count.</h2><p>Create your QR card in minutes. Free while we are in early access.</p><Link className={styles.primary} href="/signup">Start free <ArrowRight /></Link></Reveal></section>
-    <footer className={styles.footer}><Link href="/" className={styles.logo}><span>✦</span> PrimeReviews</Link><div><a href="#how-it-works">How it works</a><a href="#features">Features</a><a href="#faq">FAQ</a><Link href="/login">Log in</Link><Link href="/signup">Sign up</Link></div><p>© {new Date().getFullYear()} PrimeReviews. A scan is a visit to your review link, not a finished review.</p></footer>
+    <footer className={styles.footer}><Link href="/" className={styles.logo}><span>✦</span> PrimeReviews</Link><div><a href="#how-it-works">How it works</a><a href="#features">Features</a><a href="#faq">FAQ</a><Link href="/login">Log in</Link><Link href="/signup">Sign up</Link></div><nav className={styles.legalRow} aria-label="Legal">{legalLinks.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}</nav><p>© {new Date().getFullYear()} {legal.productName}. PrimeReviews is not affiliated with, endorsed by or sponsored by Google. A scan is a visit to your review link, not a finished review.</p></footer>
   </main>;
 }

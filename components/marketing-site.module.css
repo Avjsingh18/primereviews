@@ -218,3 +218,5 @@
 .dashTop{width:100%}
 
 .facts>p{margin:14px 0 0;color:#847e98;font-size:12px;text-align:center}
+
+.legalRow{display:flex;flex-wrap:wrap;gap:8px 22px;width:100%}.legalRow a{color:var(--mute);font-size:12.5px;text-decoration:none}.legalRow a:hover{color:#c0401a}.answer a{color:#c0401a;font-weight:600}

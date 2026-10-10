@@ -19,7 +19,7 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
     setNotice("");
     const form = new FormData(event.currentTarget);
     const body = signup
-      ? { ownerName: form.get("name"), businessName: form.get("business"), email: form.get("email"), password: form.get("password") }
+      ? { ownerName: form.get("name"), businessName: form.get("business"), email: form.get("email"), password: form.get("password"), acceptedTerms: form.get("terms") === "on" }
       : { email: form.get("email"), password: form.get("password") };
 
     try {
@@ -56,11 +56,13 @@ export default function AuthScreen({ mode }: { mode: "login" | "signup" }) {
         {signup && <><label>Your name<div><User /><input name="name" required placeholder="Alex Morgan" /></div></label><label>Business name<div><User /><input name="business" required placeholder="Melbourne Coffee House" /></div></label></>}
         <label>Email address<div><Mail /><input name="email" required type="email" placeholder="you@business.com" /></div></label>
         <label>Password<div><Lock /><input name="password" required minLength={signup ? 12 : 1} maxLength={signup ? 72 : 256} autoComplete={signup ? "new-password" : "current-password"} type={showPassword ? "text" : "password"} placeholder={signup ? "At least 12 characters" : "Your password"} /><button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} style={{ marginLeft: "auto", background: "none", border: 0, padding: 4, display: "grid", placeItems: "center", cursor: "pointer", color: "inherit" }}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
+        {signup && <label className="consent"><input type="checkbox" name="terms" required /><span>I am 18 or older and I agree to the <Link href="/terms" target="_blank">Terms of Service</Link>, <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/acceptable-use" target="_blank">Acceptable Use &amp; Reviews Policy</Link>.</span></label>}
         {!signup && <Link className="forgot" href="#">Forgot password?</Link>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status"><CheckCircle2 aria-hidden="true" />{notice}</p>}
         <button className="button auth-button" disabled={loading}>{loading ? "Please wait…" : signup ? "Create account" : "Sign in"}<ArrowRight /></button>
       </form>
+      {!signup && <p className="auth-legal">By signing in you agree to our <Link href="/terms" target="_blank">Terms</Link>, <Link href="/privacy" target="_blank">Privacy Policy</Link> and <Link href="/cookies" target="_blank">Cookie Policy</Link>.</p>}
       <p className="switch">{signup ? "Already have an account?" : "New to PrimeReviews?"} <Link href={signup ? "/login" : "/signup"}>{signup ? "Sign in" : "Create an account"}</Link></p>
     </section>
     <aside className="auth-aside" aria-label="PrimeReviews benefits">

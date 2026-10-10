@@ -6,6 +6,7 @@ import { publicRequestLimit } from "@/lib/rate-limit";
 import { readJson, safeRoute, siteOrigin, HttpError } from "@/lib/security/http";
 import { issueSession, authenticationStarted } from "@/lib/security/session";
 import { checkNewPassword } from "@/lib/security/password";
+import { legal } from "@/lib/legal-config";
 
 export const POST = safeRoute(async (request: NextRequest) => {
   try {
@@ -15,6 +16,7 @@ export const POST = safeRoute(async (request: NextRequest) => {
     const ownerName = typeof body?.ownerName === "string" ? body.ownerName.trim() : "";
     const businessName = typeof body?.businessName === "string" ? body.businessName.trim() : "";
     if (!email || email.length>254 || !ownerName || ownerName.length>160 || !businessName || businessName.length>160) return error("Enter a valid name, business name, and email.");
+    if (body?.acceptedTerms !== true) return error("Please accept the Terms of Service and Privacy Policy to create an account.");
     await publicRequestLimit(request);
     const limiters = await Promise.all([
       consumeRateLimit(requestRateLimitKey(request, "signup", email), 3, 3600),
@@ -30,7 +32,7 @@ export const POST = safeRoute(async (request: NextRequest) => {
     const { data, error: signUpError } = await supabasePublic().auth.signUp({
       email,
       password,
-      options: { data: { owner_name: ownerName, business_name: businessName }, emailRedirectTo: `${siteOrigin(request)}/login` },
+      options: { data: { owner_name: ownerName, business_name: businessName, terms_accepted_at: new Date().toISOString(), terms_version: legal.termsVersion }, emailRedirectTo: `${siteOrigin(request)}/login` },
     });
     if (signUpError) {
       // Never echo or log provider payloads or credentials.

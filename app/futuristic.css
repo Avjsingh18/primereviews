@@ -91,3 +91,10 @@ label select,.settings-card select{display:block;width:100%;padding:12px 14px;ma
 .empty-state .status{color:#8a5200}
 
 .studio-photo-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 6px}.studio-photo-actions>*{margin:0!important}.studio-ai{display:inline-flex;align-items:center;gap:8px;cursor:pointer}.studio-ai svg{width:17px;height:17px;color:#e0522a}
+
+.auth .consent{display:flex;align-items:flex-start;gap:10px;margin-top:20px;font-size:12.5px;font-weight:500;line-height:1.5;color:#4f4a66}
+.auth .consent input[type=checkbox]{flex:none;width:18px;height:18px;margin:2px 0 0;padding:0;appearance:auto;-webkit-appearance:checkbox;accent-color:#e0522a;background:initial!important;border:initial!important;box-shadow:none!important}
+.auth .consent a,.auth-legal a{color:#c0401a;font-weight:700}
+.auth-legal{margin:16px 0 0;font-size:12px;line-height:1.5;color:#6d6882;text-align:center}
+.app-legal{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:44px;padding-top:18px;border-top:1px solid rgba(31,27,46,.1)}
+.app-legal a{color:#6d6882;font-size:12px;font-weight:600;text-decoration:none}.app-legal a:hover{color:#c0401a}

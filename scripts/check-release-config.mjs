@@ -16,4 +16,5 @@ if(process.env.AI_ENABLED === "true") {
   }
 }
 if(failures.length) { console.error("Production release blocked:\n"+failures.join("\n")); process.exit(1); }
+import("node:fs").then(({ readFileSync }) => { const open = (readFileSync("lib/legal-config.ts", "utf8").match(/"\[[^"]+\]"/g) || []).length; if (open) console.warn(`WARNING: ${open} legal detail(s) in lib/legal-config.ts are still [placeholders]. Fill them in and have a lawyer review the legal pages before relying on them.`); });
 console.log("Production environment shape checks passed. This does not verify hosted migration, WAF or provider billing settings; complete the release checklist.");
