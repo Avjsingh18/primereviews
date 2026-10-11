@@ -13,6 +13,8 @@ Do not enable paid AI generation for unrestricted public usage until atomic quot
 ## Versions and verification boundaries
 
 - Production: `https://reviewflow-seven-omega.vercel.app`; Vercel production deployment `dpl_5NfeMUShEv79UZavCWrhF1PYfbYm`, serving `main` commit `9324e733aeaf70a717566ace1b4ee602c5b904d7`.
+
+> **Update (11 October 2026):** production now runs on `https://primereviews.in`. See `docs/production-domain.md`. The address above is the one that was verified when this was written.
 - Local source: branch `local`, commit `347d9c04fe47bf85e8c095d70ba031c7d9bd96c4`. Shared production code was checked against `main`; local adapter differences are listed separately below.
 - Supabase: project `oeskvrckfzuqxpeczxcl`, healthy at inspection.
 - Live checks were small, unauthenticated, and non-destructive. No brute force, load test, new account, real QR scan, paid model call, cloud configuration change, or tenant-data mutation was performed.

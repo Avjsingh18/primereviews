@@ -15,6 +15,8 @@ The user authorized merging shared local changes into main and deploying on 2026
 
 Verified Vercel project: `reviewflow`, team `reviewflow4`, production domain `reviewflow-seven-omega.vercel.app`. Its configured variables at inspection are only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`; no hidden production variables were reported.
 
+> **Update (11 October 2026):** production now runs on `https://primereviews.in`. See `docs/production-domain.md`. The address above is the one that was verified when this was written.
+
 The release still needs the canonical public site URL, independent session/rate/Data-API/cron secrets and Turnstile configuration. Native Supabase CAPTCHA must be configured and verified before setting the acknowledgement flag. Creating a real Turnstile site/account and entering its secret in Supabase requires the account owner; do not use public test keys or disable the challenge to make the release pass.
 
 Supabase `oeskvrckfzuqxpeczxcl` is healthy but does not yet have `app_sessions`, the atomic quota RPC or the Data API guard. Its advisor still reports native leaked-password protection disabled. Applying the migration without coordinated release setup is not a substitute for finishing authentication configuration.
