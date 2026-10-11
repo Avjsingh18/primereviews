@@ -29,7 +29,7 @@ export default function RefundPolicyPage() {
     <ul>
       <li><b>Duplicate or incorrect charge.</b> You were charged twice for the same period, or charged an amount different from what was shown.</li>
       <li><b>Charge after cancellation.</b> You cancelled before the renewal date and were still charged.</li>
-      <li><b>Where the law requires.</b> If the law where you live gives you a right to a refund, we will honour it.</li>
+      <li><b>Where the law requires.</b> If the law that applies to you gives you a right to a refund, we will honour it, as described in section 7.</li>
     </ul>
     <p>We cannot refund for: not getting a number of reviews or a particular rating, Google removing or changing reviews or listings, forgetting to cancel before renewal, or a QR code that stopped working because your subscription had ended.</p>
 
@@ -40,7 +40,7 @@ export default function RefundPolicyPage() {
     <p>Email {contactEmail} within 7 days of the charge with the email address on your account, the date and amount of the payment, and what went wrong. We aim to reply within 3 working days.</p>
 
     <h2>7. How refunds are paid</h2>
-    <p><b>You get back the full amount you paid for the refunded charge.</b> That includes any taxes on it and the part taken by our payment provider as its processing fee. We do not deduct fees or charges from an approved refund.</p>
+    <p>If the mistake was on our side (a duplicate or incorrect charge, or a charge after you cancelled), we refund the full amount you paid for that charge, including any taxes and the payment provider’s processing fee. If we are required by law to refund a payment that was not our error, such as under a legal cooling-off period, we will refund it as the law requires and, where the law allows, deduct the payment provider’s processing fee from the refund.</p>
     <p>Approved refunds go back to the original payment method (for example the same UPI account or card) through our payment provider. Banks usually take about 5 to 10 working days to show them. We cannot send a refund to a different account or in another form.</p>
 
     <h2>8. Taxes and failed payments</h2>
