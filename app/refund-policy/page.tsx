@@ -29,28 +29,30 @@ export default function RefundPolicyPage() {
     <ul>
       <li><b>Duplicate or incorrect charge.</b> You were charged twice for the same period, or charged an amount different from what was shown.</li>
       <li><b>Charge after cancellation.</b> You cancelled before the renewal date and were still charged.</li>
-      <li><b>Service failure.</b> The paid features were unavailable because of a fault on our side for a significant part of the billing period and we could not fix it. We may refund part or all of that period.</li>
       <li><b>Where the law requires.</b> If the law where you live gives you a right to a refund, we will honour it.</li>
     </ul>
     <p>We cannot refund for: not getting a number of reviews or a particular rating, Google removing or changing reviews or listings, forgetting to cancel before renewal, or a QR code that stopped working because your subscription had ended.</p>
 
-    <h2>5. How to ask for a refund</h2>
+    <h2>5. Outages</h2>
+    <p>If the paid features are unavailable because of a fault on our side for more than 24 hours in a row, we will extend your subscription by the number of days affected. We do not give a refund for outages. Outages caused by Google, your internet connection or device, or maintenance we announce in advance do not count.</p>
+
+    <h2>6. How to ask for a refund</h2>
     <p>Email {contactEmail} within 7 days of the charge with the email address on your account, the date and amount of the payment, and what went wrong. We aim to reply within 3 working days.</p>
 
-    <h2>6. How refunds are paid</h2>
-    <p><b>You get back the full amount you paid for the refunded charge.</b> That includes any taxes on it and the part taken by our payment provider as its processing fee. We do not deduct fees or charges from an approved refund. If we approve only part of a charge (for example, for a service failure that affected part of the month), you get back that part in full on the same basis.</p>
+    <h2>7. How refunds are paid</h2>
+    <p><b>You get back the full amount you paid for the refunded charge.</b> That includes any taxes on it and the part taken by our payment provider as its processing fee. We do not deduct fees or charges from an approved refund.</p>
     <p>Approved refunds go back to the original payment method (for example the same UPI account or card) through our payment provider. Banks usually take about 5 to 10 working days to show them. We cannot send a refund to a different account or in another form.</p>
 
-    <h2>7. Taxes and failed payments</h2>
+    <h2>8. Taxes and failed payments</h2>
     <p>Prices may include or add taxes such as GST or VAT, as shown at checkout. If a renewal payment fails, we may retry it and, if it still fails, end the paid plan. Charges that fail are not owed.</p>
 
-    <h2>8. Price changes</h2>
+    <h2>9. Price changes</h2>
     <p>We may change prices for future billing periods. We will tell you before the change takes effect, and you can cancel before it applies. The new price will not apply to a period you have already paid for.</p>
 
-    <h2>9. Changes to this policy</h2>
+    <h2>10. Changes to this policy</h2>
     <p>We may update this policy. Changes do not affect a billing period you have already paid for.</p>
 
-    <h2>10. Contact</h2>
+    <h2>11. Contact</h2>
     <p>{legal.operator}, {legal.address}. Email: {contactEmail}.</p>
   </LegalPage>;
 }
