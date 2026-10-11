@@ -7,7 +7,13 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import RecoveryRedirect from "@/components/recovery-redirect";
 
-export const metadata: Metadata = { title: "PrimeReviews", description: "Turn great visits into Google reviews." };
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://primereviews.in";
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: { default: "PrimeReviews", template: "%s" },
+  description: "Turn great visits into Google reviews.",
+  openGraph: { type: "website", siteName: "PrimeReviews", title: "PrimeReviews: Google review QR codes for local businesses", description: "Print a QR code, get more Google reviews, track scans and ratings, and see how you rank against nearby businesses." },
+};
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // The proxy attaches a per-request CSP nonce. Nonce-aware Next scripts are
   // only emitted during dynamic rendering; without this gate, a prerendered
