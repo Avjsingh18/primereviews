@@ -40,7 +40,7 @@ export default function RefundPolicyPage() {
     <p>Email {contactEmail} within 7 days of the charge with the email address on your account, the date and amount of the payment, and what went wrong. We aim to reply within 3 working days.</p>
 
     <h2>7. How refunds are paid</h2>
-    <p>If the mistake was on our side (a duplicate or incorrect charge, or a charge after you cancelled), we refund the full amount you paid for that charge, including any taxes and the payment provider’s processing fee. If we are required by law to refund a payment that was not our error, such as under a legal cooling-off period, we will refund it as the law requires and, where the law allows, deduct the payment provider’s processing fee from the refund.</p>
+    <p>If the mistake was on our side (a duplicate or incorrect charge, or a charge after you cancelled), we refund the full amount you paid for that charge, including any taxes and the payment provider’s processing fee. If we are required by law to refund a payment that was not our error, we will refund it as the law requires and, where the law allows, deduct the payment provider’s processing fee from the refund.</p>
     <p>Approved refunds go back to the original payment method (for example the same UPI account or card) through our payment provider. Banks usually take about 5 to 10 working days to show them. We cannot send a refund to a different account or in another form.</p>
 
     <h2>8. Taxes and failed payments</h2>
