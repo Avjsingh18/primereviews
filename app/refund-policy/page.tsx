@@ -38,6 +38,7 @@ export default function RefundPolicyPage() {
     <p>Email {contactEmail} within 7 days of the charge with the email address on your account, the date and amount of the payment, and what went wrong. We aim to reply within 3 working days.</p>
 
     <h2>6. How refunds are paid</h2>
+    <p><b>You get back the full amount you paid for the refunded charge.</b> That includes any taxes on it and the part taken by our payment provider as its processing fee. We do not deduct fees or charges from an approved refund. If we approve only part of a charge (for example, for a service failure that affected part of the month), you get back that part in full on the same basis.</p>
     <p>Approved refunds go back to the original payment method (for example the same UPI account or card) through our payment provider. Banks usually take about 5 to 10 working days to show them. We cannot send a refund to a different account or in another form.</p>
 
     <h2>7. Taxes and failed payments</h2>
