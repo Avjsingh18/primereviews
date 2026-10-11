@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { error } from "@/lib/api";
 import { supabaseAdmin, supabasePublic } from "@/lib/supabase/server";
 import { consumeRateLimit, publicRequestLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
-import { json, readJson, safeRoute } from "@/lib/security/http";
+import { HttpError, json, readJson, safeRoute } from "@/lib/security/http";
 import { checkNewPassword } from "@/lib/security/password";
 import { recoveryTokenIsFresh } from "@/lib/security/recovery";
 import { revokeUserSessions } from "@/lib/security/session";
@@ -43,13 +43,25 @@ export const POST = safeRoute(async (request: NextRequest) => {
   if (locked.error || !locked.data) return error("Account security is busy. Please try again shortly.", 503);
   try {
     const { error: updateError } = await db.auth.admin.updateUserById(userId, { password: newPassword });
-    if (updateError) throw new Error("Password update unavailable");
+    if (updateError) {
+      // Only the provider's error code and status are logged, never the password, token or email.
+      console.error("reset-password: update failed", updateError.code, updateError.status);
+      if (updateError.code === "same_password") throw new HttpError(422, "Choose a password you have not used before. It must be different from your current password.");
+      if (updateError.code === "weak_password") throw new HttpError(400, "That password is too easy to guess. Try a longer or less common one.");
+      throw new Error("Password update unavailable");
+    }
     const revoked = await db.auth.admin.signOut(sessionToken, "global");
-    if (revoked.error) throw new Error("Provider revocation unavailable");
+    if (revoked.error) {
+      console.error("reset-password: global sign-out failed", revoked.error.code, revoked.error.status);
+      throw new Error("Provider revocation unavailable");
+    }
   } finally {
     await revokeUserSessions(userId);
     const unlocked = await db.rpc("security_password_unlock", { p_user: userId });
-    if (unlocked.error) throw new Error("Account protection unavailable");
+    if (unlocked.error) {
+      console.error("reset-password: unlock failed", unlocked.error.code);
+      throw new Error("Account protection unavailable");
+    }
   }
   return json({ ok: true });
 });
