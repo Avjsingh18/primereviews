@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Terms of Service · PrimeReviews", d
 export default function TermsPage() {
   return <LegalPage title="Terms of Service" summary="These terms are a legal agreement between you and us. In short: use the service honestly and lawfully, follow Google’s review rules, keep your account secure, and understand that we cannot guarantee reviews, ratings or results. Please read them carefully.">
     <h2>1. Agreement</h2>
-    <p>These Terms of Service (“Terms”) govern your access to and use of {legal.productName}, operated by {legal.operator} (“we”, “us”, “our”), including our website, dashboard, QR links, QR Studio and related features (the “Service”). By creating an account, ticking the box to accept these Terms, or using the Service, you agree to these Terms, our <a href="/privacy">Privacy Policy</a>, our <a href="/cookies">Cookie Policy</a> and our <a href="/acceptable-use">Acceptable Use & Reviews Policy</a>. If you do not agree, do not use the Service.</p>
+    <p>These Terms of Service (“Terms”) govern your access to and use of {legal.productName}, operated by {legal.operator} (“we”, “us”, “our”), including our website, dashboard, QR links, QR Studio and related features (the “Service”). By creating an account, ticking the box to accept these Terms, or using the Service, you agree to these Terms, our <a href="/privacy">Privacy Policy</a>, our <a href="/cookies">Cookie Policy</a> and our <a href="/acceptable-use">Acceptable Use & Reviews Policy</a> and our <a href="/refund-policy">Refund & Cancellation Policy</a>. If you do not agree, do not use the Service.</p>
     <p>You must be at least 18 years old and able to form a binding contract. If you use the Service for a business, you confirm that you have authority to bind that business, and “you” includes it.</p>
 
     <h2>2. The Service</h2>
@@ -39,7 +39,7 @@ export default function TermsPage() {
     <p>Some images we provide, including sample images on our website and ready-made QR card backgrounds, are generated with artificial intelligence. They are illustrative and are not photographs of your business or of real people. You are responsible for deciding whether an image is suitable and not misleading for your business.</p>
 
     <h2>10. Fees</h2>
-    <p>The Service is currently free while in early access. If we introduce paid plans we will tell you in advance, show prices and billing terms before you pay, and will not charge you without your agreement. Taxes may apply to paid plans.</p>
+    <p>The Service is currently free while in early access. If we introduce paid plans, they will be monthly subscriptions. We will tell you in advance, show prices and billing terms before you pay, and will not charge you without your agreement. Taxes may apply. Some features, such as your QR code’s redirect to your review link and local ranking, may be available only with an active paid subscription. Cancellation, access after cancellation and refunds are explained in our <a href="/refund-policy">Refund & Cancellation Policy</a>, which forms part of these Terms.</p>
 
     <h2>11. Availability and changes</h2>
     <p>We work to keep the Service available but do not promise uninterrupted or error-free operation. We may suspend or change the Service for maintenance, security or legal reasons. QR codes depend on your printed materials, lighting and customers’ devices; test every printed code before you rely on it.</p>
