@@ -7,9 +7,12 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import RecoveryRedirect from "@/components/recovery-redirect";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://primereviews.in";
+// A mistyped value must not take every page down, so fall back to the real domain.
+function metadataOrigin() {
+  try { return new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://primereviews.in"); } catch { return new URL("https://primereviews.in"); }
+}
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: metadataOrigin(),
   title: { default: "PrimeReviews", template: "%s" },
   description: "Turn great visits into Google reviews.",
   openGraph: { type: "website", siteName: "PrimeReviews", title: "PrimeReviews: Google review QR codes for local businesses", description: "Print a QR code, get more Google reviews, track scans and ratings, and see how you rank against nearby businesses." },
