@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, requireUser } from "@/lib/api";
 import { supabasePublic, supabaseAdmin } from "@/lib/supabase/server";
-import { readJson, safeRoute, json } from "@/lib/security/http";
+import { HttpError, readJson, safeRoute, json } from "@/lib/security/http";
+import { bestEffort } from "@/lib/security/cleanup";
 import { revokeUserSessions, clearSessionCookie } from "@/lib/security/session";
 import { checkNewPassword } from "@/lib/security/password";
 import { consumeRateLimit, rateLimitResponse, rateLimitUnavailableResponse, requestRateLimitKey } from "@/lib/rate-limit";
@@ -26,13 +27,23 @@ export const POST = safeRoute(async (request: NextRequest) => {
   if (locked.error || !locked.data) return error("Account security is busy. Please try again later.", 503);
   try {
     const { error: updateError } = await db.auth.admin.updateUserById(auth.user.id, { password: newPassword });
-    if (updateError) throw new Error("Password update unavailable");
-    const revoked = await db.auth.admin.signOut(checked.session.access_token, "global");
-    if (revoked.error) throw new Error("Provider revocation unavailable");
+    if (updateError) {
+      console.error("change-password: password update failed", updateError.code, updateError.status);
+      if (updateError.code === "same_password") throw new HttpError(422, "Choose a password you have not used before. It must be different from your current password.");
+      if (updateError.code === "weak_password") throw new HttpError(400, "That password is too easy to guess. Try a longer or less common one.");
+      throw new Error("Password update unavailable");
+    }
+    // The password is already changed, so a clean-up problem must not report the change as failed.
+    await bestEffort("change-password", "provider global sign-out", async () => {
+      const revoked = await db.auth.admin.signOut(checked.session!.access_token, "global");
+      if (revoked.error) throw revoked.error;
+    });
   } finally {
-    await revokeUserSessions(auth.user.id);
-    const unlocked = await db.rpc("security_password_unlock", { p_user: auth.user.id });
-    if (unlocked.error) throw new Error("Account protection unavailable");
+    await bestEffort("change-password", "session revocation", () => revokeUserSessions(auth.user.id));
+    await bestEffort("change-password", "account unlock", async () => {
+      const unlocked = await db.rpc("security_password_unlock", { p_user: auth.user.id });
+      if (unlocked.error) throw unlocked.error;
+    });
   }
   const response = json({ ok: true, signInRequired: true }); clearSessionCookie(response); return response;
 });

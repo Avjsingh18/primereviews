@@ -1,2 +1,7 @@
+import { notFound } from "next/navigation";
 import AIInsights from "@/components/ai-insights";
-export default function AIInsightsPage(){return <AIInsights/>}
+import { features } from "@/lib/features";
+export default function AIInsightsPage(){
+  if (!features.aiInsights) notFound();
+  return <AIInsights/>;
+}
