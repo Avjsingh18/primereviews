@@ -5,6 +5,9 @@ import { categories, Competitor, haversineDistanceKm, NearbySearchRequest, Nearb
 const placesBaseUrl = "https://places.googleapis.com/v1";
 const timeoutMs = 15000;
 const nearbyFields = "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.googleMapsUri,places.primaryType,places.businessStatus";
+// Search results only need identity fields, which keeps the lookup in Google's cheaper billing tier.
+const placeSearchFields = "places.id,places.displayName,places.formattedAddress,places.location,places.businessStatus";
+const placeDetailFields = "id,displayName,formattedAddress,location,rating,userRatingCount,googleMapsUri,businessStatus";
 const textFields = "places.id,places.displayName,places.location,places.rating,places.userRatingCount,places.googleMapsUri";
 
 const placeSchema = z.object({
@@ -23,6 +26,9 @@ const placesResponseSchema = z.object({ places: z.array(placeSchema).max(20).opt
 export class GooglePlacesError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
+
+export type PlaceSummary = { placeId: string; name: string; address: string | null; latitude: number; longitude: number };
+export type PlaceDetails = PlaceSummary & { rating: number | null; reviewCount: number | null; googleMapsUrl: string | null; closed: boolean };
 
 export type GoogleBusinessMetrics = {
   rating: number; reviewCount: number; googleMapsUrl: string | null; placeId: string; placeName: string; retrievedAt: string;
@@ -51,6 +57,23 @@ async function requestPlaces(path: string, fieldMask: string, body: unknown) {
   const parsed = placesResponseSchema.safeParse(await response.json());
   if (!parsed.success) throw new GooglePlacesError(502, "Google Places returned an invalid response.");
   return parsed.data.places ?? [];
+}
+
+async function requestPlaceDetails(placeId: string) {
+  const key = apiKey();
+  let response: Response;
+  try {
+    response = await fetch(`${placesBaseUrl}/places/${encodeURIComponent(placeId)}`, { headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": placeDetailFields }, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
+  } catch {
+    throw new GooglePlacesError(502, "Google Places is temporarily unavailable. Please try again later.");
+  }
+  if (response.status === 404 || response.status === 400) throw new GooglePlacesError(404, "We couldn’t find that business on Google Maps.");
+  if (response.status === 401 || response.status === 403) throw new GooglePlacesError(503, "Google Places access is unavailable. Check that Places API (New) is enabled for this key.");
+  if (response.status === 429) throw new GooglePlacesError(429, "Google Places request limit has been reached. Please try again later.");
+  if (!response.ok) throw new GooglePlacesError(502, "Google Places could not complete this lookup.");
+  const parsed = placeSchema.safeParse(await response.json());
+  if (!parsed.success) throw new GooglePlacesError(502, "Google Places returned an invalid response.");
+  return parsed.data;
 }
 
 function nameKey(value: string) { return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " "); }
@@ -100,6 +123,30 @@ export class GooglePlacesProvider {
       return [{ id: place.id, name, category: place.primaryType || category.label, address: place.formattedAddress ?? null, rating: place.rating ?? null, reviewCount: place.userRatingCount ?? null, ratingSource: "google" as const, latitude: place.location.latitude, longitude: place.location.longitude, distanceKm: Number(distanceKm.toFixed(2)), distanceVerified: true as const, sourceUrl: null, googleMapsUrl: place.googleMapsUri ?? null, verificationStatus: "verified" as const, retrievedAt }];
     }).slice(0, input.limit);
     return { businesses, provider: "google_places", sourceStatus: "verified", isComplete: false, searchedAt: retrievedAt };
+  }
+
+  // Lets an owner find their own listing by name and area from anywhere. No device location or coordinates are involved.
+  async searchBusinesses(query: string): Promise<PlaceSummary[]> {
+    const places = await requestPlaces("/places:searchText", placeSearchFields, { textQuery: query, pageSize: 6 });
+    return places.flatMap((place) => {
+      const name = place.displayName?.text;
+      if (!name || !place.location || place.businessStatus === "CLOSED_PERMANENTLY") return [];
+      return [{ placeId: place.id, name, address: place.formattedAddress ?? null, latitude: place.location.latitude, longitude: place.location.longitude }];
+    }).slice(0, 5);
+  }
+
+  // Authoritative record for a chosen listing. The name, address and coordinates come from Google, never from the browser.
+  async getPlace(placeId: string): Promise<PlaceDetails> {
+    const place = await requestPlaceDetails(placeId);
+    const name = place.displayName?.text;
+    if (!name || !place.location) throw new GooglePlacesError(404, "We couldn’t find that business on Google Maps.");
+    return { placeId: place.id, name, address: place.formattedAddress ?? null, latitude: place.location.latitude, longitude: place.location.longitude, rating: place.rating ?? null, reviewCount: place.userRatingCount ?? null, googleMapsUrl: place.googleMapsUri ?? null, closed: place.businessStatus === "CLOSED_PERMANENTLY" };
+  }
+
+  async getBusinessMetricsByPlaceId(placeId: string): Promise<GoogleBusinessMetrics> {
+    const place = await this.getPlace(placeId);
+    if (place.rating == null || place.reviewCount == null) throw new GooglePlacesError(404, "This business has no Google rating yet.");
+    return { rating: place.rating, reviewCount: place.reviewCount, googleMapsUrl: place.googleMapsUrl, placeId: place.placeId, placeName: place.name, retrievedAt: new Date().toISOString() };
   }
 
   async findBusinessMetrics(business: { name: string; latitude: number; longitude: number }): Promise<GoogleBusinessMetrics> {

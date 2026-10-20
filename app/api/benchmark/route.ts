@@ -21,7 +21,7 @@ export const POST = safeRoute(async (request: NextRequest) => {
   const radiusKm = input.radiusKm as 1 | 3 | 5; const limit = input.limit == null ? 20 : Number(input.limit);
   await enforceLimit(request, "competitors-user", 10, 3600, auth.user.id);
   await enforceLimit(request, "competitors-ip", 30, 3600);
-  const { data: business } = await auth.supabase.from("businesses").select("id,name,google_review_url,latitude,longitude,category_slug").eq("user_id", auth.user.id).maybeSingle();
+  const { data: business } = await auth.supabase.from("businesses").select("id,name,google_review_url,latitude,longitude,category_slug,google_place_id").eq("user_id", auth.user.id).maybeSingle();
   if (!business) return error("Complete onboarding first.", 404);
   // The search category is always the business type chosen at sign-up; it is never taken from the request.
   const competitorCategory = isBusinessType(business.category_slug) ? COMPETITOR_CATEGORY[business.category_slug] : null;
@@ -41,7 +41,7 @@ export const POST = safeRoute(async (request: NextRequest) => {
   }
   let myBusiness = { rating: null as number | null, reviewCount: null as number | null, cached: false };
   try {
-    const current = await getCurrentGoogleBusinessMetrics(auth.user.id, { id: business.id, name: business.name, googleReviewUrl: business.google_review_url, latitude: business.latitude, longitude: business.longitude });
+    const current = await getCurrentGoogleBusinessMetrics(auth.user.id, { id: business.id, name: business.name, googleReviewUrl: business.google_review_url, latitude: business.latitude, longitude: business.longitude, placeId: business.google_place_id });
     myBusiness = { rating: current.metrics.rating, reviewCount: current.metrics.reviewCount, cached: current.cached };
   } catch (cause) {
     if (cause instanceof GooglePlacesError && cause.status === 404) {

@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "test:competitors": "NODE_OPTIONS=--conditions=react-server tsx --test lib/competitor-discovery.test.ts",
+    "test:places": "NODE_OPTIONS=--conditions=react-server tsx --test lib/places.test.ts",
     "test:qr-design": "tsx --test lib/qr-design.test.ts",
     "test:qr-studio": "tsx --test lib/qr-studio.test.ts",
     "test:security": "node scripts/security-unit-tests.mjs",

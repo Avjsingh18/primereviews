@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     <h3>Information you give us</h3>
     <ul>
       <li><b>Account details:</b> your name, business name and email address. Your password is sent to our authentication provider, which keeps only a secure one-way hash; we do not store your password. When you sign up we also record that you confirmed you are 18 or older and accepted our Terms, along with the time and the version of the Terms. We do not ask for your date of birth.</li>
-      <li><b>Business details:</b> your business name, business type, Google review link and your business location (latitude and longitude). You can type the location or, if you press “Use my location”, share it through your browser, which asks your permission first.</li>
+      <li><b>Business details:</b> your business name, business type, Google review link and the Google listing you choose as your business (its Google place ID, name, address and the map coordinates Google holds for it). You find your business by searching for it by name and area; we do not ask for your device’s location.</li>
       <li><b>QR card content:</b> the tagline you choose or write, your design choices (design style and black-and-white mode) and, if you upload one, an ambience photo or the ready-made background you select. Uploaded photos have their metadata removed and are compressed before we store them.</li>
       <li><b>Messages:</b> anything you send us when you contact us.</li>
     </ul>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
     <h3>Technical data and IP addresses</h3>
     <p>Like every website, our servers receive your IP address, browser type and the pages you request each time you visit us or scan a QR code. We use the IP address (and, for sign-in and sign-up limits, your email address or account identifier) only for security and to prevent abuse: it is turned into a keyed, one-way hash that is used to count requests and apply rate limits, and those hashes are deleted after a short period of inactivity. We do not store IP addresses in readable form in our application database. However, the hosting, database and authentication providers that deliver our service handle IP addresses and request details as part of normal operation, and may keep them in their own security and operational logs for a limited time under their own policies. Our servers do not pass your IP address on to Google or to our sign-in provider when they make requests on your behalf.</p>
     <h3>Information we send to and receive from Google</h3>
-    <p>We use the Google Places API server-side. To find your business and your Google rating we send Google your business name and location. To build the local rankings we send your business location and search keywords for the business type you chose. We receive public information such as ratings, review counts, business names, addresses, distances and map links of nearby businesses. We do not send your name, email address or password to Google.</p>
+    <p>We use the Google Places API server-side. When you search for your business we send Google the search words you type (for example the business name and area). To get your Google rating we send Google the place ID of the listing you chose. To build the local rankings we send the map coordinates of that listing and search keywords for the business type you chose. We receive public information such as ratings, review counts, business names, addresses, distances and map links of nearby businesses. We do not send your name, email address or password to Google.</p>
 
     <h2>3. How we use information</h2>
     <ul>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
     <table><thead><tr><th>Category of provider</th><th>Purpose</th><th>Data involved</th></tr></thead><tbody>
       <tr><td>Cloud hosting and delivery providers</td><td>Run and deliver our website and QR links</td><td>Requests to our service, including IP address and technical logs</td></tr>
       <tr><td>Database and authentication providers</td><td>Store your account and sign you in</td><td>Account, business, scan-count, rating and QR card data</td></tr>
-      <tr><td>Google (Places API)</td><td>Ratings, review counts and nearby businesses</td><td>Business location and business type</td></tr>
+      <tr><td>Google (Places API)</td><td>Ratings, review counts and nearby businesses</td><td>Your business search words, the chosen listing’s place ID and map coordinates, and business type</td></tr>
       <tr><td>Breached-password checking service</td><td>Stops use of passwords found in public breaches</td><td>Only the first characters of a one-way hash of the password, never the password itself</td></tr>
       <tr><td>Email delivery providers</td><td>Send confirmation and service emails</td><td>Your email address and the message</td></tr>
     </tbody></table>

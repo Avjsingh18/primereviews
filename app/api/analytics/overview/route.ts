@@ -10,7 +10,7 @@ import { dailyScanSeries, dailySnapshotSeries } from "@/lib/analytics-series";
 export const GET = safeRoute(async (request: NextRequest) => {
   const auth = await requireUser(request); if ("response" in auth) return auth.response;
   const { start, end } = dateWindow(request);
-  const { data: business } = await auth.supabase.from("businesses").select("id,name,google_review_url,latitude,longitude").eq("user_id", auth.user.id).maybeSingle(); if (!business) return error("Business not found.", 404);
+  const { data: business } = await auth.supabase.from("businesses").select("id,name,google_review_url,latitude,longitude,google_place_id").eq("user_id", auth.user.id).maybeSingle(); if (!business) return error("Business not found.", 404);
   const [{ data: snapshots, error: snapshotError }, { data: qr }] = await Promise.all([
     auth.supabase.from("review_snapshots").select("rating,total_reviews,snapshot_date").eq("business_id", business.id).lte("snapshot_date", end).order("snapshot_date", { ascending: false }).limit(367),
     auth.supabase.from("qr_codes").select("id").eq("business_id", business.id).eq("active", true).maybeSingle(),
@@ -26,7 +26,7 @@ export const GET = safeRoute(async (request: NextRequest) => {
   let current: { rating: number | null; totalReviews: number | null; cached: boolean } = { rating: latestSnapshot?.rating ?? null, totalReviews: latestSnapshot?.total_reviews ?? null, cached: false };
   if (typeof business.latitude === "number" && typeof business.longitude === "number") {
     try {
-      const result = await getCurrentGoogleBusinessMetrics(auth.user.id, { id: business.id, name: business.name, googleReviewUrl: business.google_review_url, latitude: business.latitude, longitude: business.longitude });
+      const result = await getCurrentGoogleBusinessMetrics(auth.user.id, { id: business.id, name: business.name, googleReviewUrl: business.google_review_url, latitude: business.latitude, longitude: business.longitude, placeId: business.google_place_id });
       current = { rating: result.metrics.rating, totalReviews: result.metrics.reviewCount, cached: result.cached };
       if (!result.cached) {
         const { error: saveSnapshotError } = await supabaseAdmin().from("review_snapshots").upsert({ business_id: business.id, rating: result.metrics.rating, total_reviews: result.metrics.reviewCount, snapshot_date: new Date().toISOString().slice(0, 10), source: "google_places" }, { onConflict: "business_id,snapshot_date" });

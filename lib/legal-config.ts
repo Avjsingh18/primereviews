@@ -11,9 +11,9 @@ export const legal = {
   // Shown in the Privacy Policy for EEA/UK users. Leave "" until you actively serve people in the EU or UK without an office there;
   // the GDPR then usually requires an EU (and UK) representative, whose name and address go here.
   euUkRepresentative: "",
-  effectiveDate: "11 October 2026",
+  effectiveDate: "20 October 2026",
   // Stored with every new account so you can show which version of the terms was accepted.
-  termsVersion: "2026-10-11",
+  termsVersion: "2026-10-20",
 } as const;
 
 export const legalLinks = [

@@ -12,7 +12,7 @@ const taglineData = JSON.parse(fs.readFileSync(path.join(root, "data/qr_taglines
 const origin = process.env.UI_MOCK_SITE || "http://localhost:3100";
 
 const state = {
-  business: { id: "demo-business", name: "Saffron Table", slug: "saffron-table-demo", googleReviewUrl: "https://g.page/r/demo/review", latitude: 28.62127, longitude: 77.42985, category: "restaurants" },
+  business: { id: "demo-business", name: "Saffron Table", slug: "saffron-table-demo", googleReviewUrl: "https://g.page/r/demo/review", latitude: 28.62127, longitude: 77.42985, category: "restaurants", place: { id: "ChIJdemoSaffronTable01", name: "Saffron Table", address: "12 Market Road, Noida, Uttar Pradesh" } },
   design: { variantIndex: 0, tagline: "Loved the food? Tell us!", taglineSource: "preset", bwMode: false, seen: [0], version: 1 },
   photo: false,
 };
@@ -43,6 +43,11 @@ function designPayload() {
   const d = state.design;
   return { id: "demo-design", category: state.business.category, variantIndex: d.variantIndex, tagline: d.tagline, taglineSource: d.taglineSource, bwMode: d.bwMode, renderUrl: `/api/qr-studio/render/${"a".repeat(63)}${d.version % 10}.jpg`, businessName: state.business.name, trackingUrl: trackingUrl(), seenVariants: d.seen };
 }
+const samplePlaces = [
+  { placeId: "ChIJdemoSaffronTable01", name: "Saffron Table", address: "12 Market Road, Noida, Uttar Pradesh", latitude: 28.62127, longitude: 77.42985 },
+  { placeId: "ChIJdemoSaffronTable02", name: "Saffron Table Express", address: "4 Station Road, Ghaziabad, Uttar Pradesh", latitude: 28.6692, longitude: 77.4538 },
+  { placeId: "ChIJdemoSaffronKitchen3", name: "Saffron Kitchen", address: "88 Sector 18, Noida, Uttar Pradesh", latitude: 28.5707, longitude: 77.3219 },
+];
 const places = [
   ["Brew Lane Kitchen", 4.7, 612, 0.8], ["The Corner Table", 4.5, 940, 1.2], ["Saffron Table (sample)", 4.6, 1203, 0.1], ["Daily Grind Diner", 4.3, 388, 2.1], ["Bean Street Bistro", 4.1, 204, 2.6], ["Spice Route", 4.4, 731, 1.9], ["Urban Tandoor", 4.2, 455, 3.3], ["Little Italy House", 4.6, 520, 3.8],
 ];
@@ -65,8 +70,15 @@ const server = http.createServer(async (req, res) => {
   if (route === "/api/auth/forgot-password") { await readBody(req); return send(res, 200, { ok: true }); }
   if (route === "/api/auth/reset-password") { const body = await readBody(req); if (!body.accessToken && !body.tokenHash) return send(res, 400, { error: "This reset link has expired or was already used. Please request a new one." }); if (String(body.newPassword || "").length < 12) return send(res, 400, { error: "Use a password with at least 12 characters and no more than 72 bytes." }); return send(res, 200, { ok: true }); }
   if (route === "/api/auth/change-password") return send(res, 200, { ok: true });
+  if (route === "/api/places/search") {
+    const body = await readBody(req);
+    if (typeof body.placeId === "string") { const found = samplePlaces.find((p) => p.placeId === body.placeId); return found ? send(res, 200, { places: [found] }) : send(res, 404, { error: "We couldn’t find that business on Google Maps." }); }
+    const q = String(body.query || "").toLowerCase();
+    if (q.includes("nothing")) return send(res, 200, { places: [] });
+    return send(res, 200, { places: samplePlaces });
+  }
   if (route === "/api/business" && method === "GET") return send(res, 200, { ...state.business, trackingUrl: trackingUrl() });
-  if (route === "/api/business") { const body = await readBody(req); Object.assign(state.business, { name: body.name ?? state.business.name, googleReviewUrl: body.googleReviewUrl ?? state.business.googleReviewUrl, category: body.category ?? state.business.category, latitude: body.latitude ?? state.business.latitude, longitude: body.longitude ?? state.business.longitude }); return send(res, 200, { ...state.business, trackingUrl: trackingUrl() }); }
+  if (route === "/api/business") { const body = await readBody(req); const picked = samplePlaces.find((p) => p.placeId === body.placeId); if (picked) { state.business.place = { id: picked.placeId, name: picked.name, address: picked.address }; body.latitude = picked.latitude; body.longitude = picked.longitude; } Object.assign(state.business, { name: body.name ?? state.business.name, googleReviewUrl: body.googleReviewUrl ?? state.business.googleReviewUrl, category: body.category ?? state.business.category, latitude: body.latitude ?? state.business.latitude, longitude: body.longitude ?? state.business.longitude }); return send(res, 200, { ...state.business, trackingUrl: trackingUrl() }); }
   if (route === "/api/business/qr") return send(res, 200, { id: "demo-qr", slug: state.business.slug, trackingUrl: trackingUrl() });
   if (route.startsWith("/api/analytics/overview")) return send(res, 200, overview(url));
   if (route.startsWith("/api/analytics/")) { const o = overview(url); return send(res, 200, { series: route.endsWith("scans") ? o.scans : route.endsWith("rating") ? o.ratings : o.reviews }); }
