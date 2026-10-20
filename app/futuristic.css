@@ -112,3 +112,7 @@ label select,.settings-card select{display:block;width:100%;padding:12px 14px;ma
 .settings-card.danger-zone .muted{margin:8px 0 20px;line-height:1.6}
 .settings-card.danger-zone>.danger-button{margin-top:0}
 .settings-card.danger-zone form{margin-top:4px}
+
+/* A native dropdown ignores padding on macOS, so it drew much thinner than the text boxes. Drawing it ourselves gives every browser the same height. */
+label select,.settings-card select,.onboard select{-webkit-appearance:none;appearance:none;height:40px;padding:10px 42px 10px 14px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234f4a66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>")!important;background-repeat:no-repeat!important;background-position:right 14px center!important;background-size:16px 16px!important;cursor:pointer}
+.onboard select{height:42px;padding:10px 42px 10px 12px}
